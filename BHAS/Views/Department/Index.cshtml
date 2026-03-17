@@ -23,7 +23,10 @@
                 <td>@dpt.DepartmentName</td>
                 <td>@dpt.DepartmentCode</td>
                 <td>@dpt.Budget</td>
-                <td>--</td>
+                <td>
+                    @Html.ActionLink("Detalji", "Details", new { id = dpt.DepartmentID }, 
+                                                           new { @class = "btn btn-sm btn-info"})
+                </td>
             </tr>
         }
     </tbody>

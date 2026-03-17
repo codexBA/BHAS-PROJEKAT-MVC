@@ -5,15 +5,71 @@
 
 <h2>Detalji odjela</h2>
 
-<div class="card">
-    <div>
+<div class="card" style="max-width: 600px;">
+    <div class="card-body">
         <dl class="row">
             <dt class="col-sm-4">Naziv odjela</dt>
-            <dd class="col-sm-8"></dd>
+            <dd class="col-sm-8">@Model.DepartmentName</dd>
 
+            <dt class="col-sm-4">Šifra odjela</dt>
+            <dd class="col-sm-8">@Model.DepartmentCode</dd>
 
+            <dt class="col-sm-4">Budžet</dt>
+            <dd class="col-sm-8">@Model.Budget</dd>
 
+            <dt class="col-sm-4">Menadžer</dt>
+            <dd class="col-sm-8">@Model.Employee.FirstName @Model.Employee.LastName</dd>
 
+            <dt class="col-sm-4">Datum kreiranja</dt>
+            <dd class="col-sm-8">
+                @(Model.CreatedDate.HasValue
+                        ? Model.CreatedDate.Value.ToString("dd.MM.yyyy")
+                        : "----")
+            </dd>
+
+            <dt class="col-sm-4">Datum kreiranja</dt>
+            <dd class="col-sm-8">
+                @(Model.ModifiedDate.HasValue
+                        ? Model.ModifiedDate.Value.ToString("dd.MM.yyyy")
+                        : "----")
+            </dd>
         </dl>
     </div>
+</div>
+
+@*  Tabela zaposlenih  *@
+
+<div style="margin-top:15px;">
+    <h2>Zaposleni</h2>
+
+    <table class="table table-bordered table-hover table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Ime</th>
+                <th>Prezime</th>
+                <th>Pozicija</th>
+                <th>Email</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var emp in Model.Employees)
+            {
+                <tr>
+                    <td>@emp.FirstName</td>
+                    <td>@emp.LastName</td>
+                    <td>@emp.Position</td>
+                    <td>@emp.Email</td>
+                    <td>@Html.ActionLink("Detalji", "Details", "Employee", 
+                                                new {id=emp.EmployeeID}, 
+                                                new { @class = "btn btn-sm btn-info" })
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+</div>
+<div style="margin-top:15px;">
+    @Html.ActionLink("Nazad", "Index", null, new { @class = "btn btn-sm btn-secondary" })
 </div>

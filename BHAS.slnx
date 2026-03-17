@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="BHAS.DbFirst/BHAS.DbFirst.csproj" />
-  <Project Path="BHAS/BHAS.csproj" />
+  <Project Path="BHAS.DbFirst/BHAS.DbFirst.csproj" Id="ed133d52-0318-4c8c-9c95-aecfd2e18e0a" />
+  <Project Path="BHAS/BHAS.csproj" Id="f2ecd860-f471-43b2-9ff1-3162356d8da9" />
 </Solution>

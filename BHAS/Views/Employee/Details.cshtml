@@ -1,0 +1,51 @@
+﻿@model BHAS.DbFirst.Employee
+@{
+    ViewBag.Title = "Detalji";
+}
+
+<h2>Detalji zaposlenika</h2>
+
+<div class="card" style="max-width: 600px;">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-4">Ime</dt>
+            <dd class="col-sm-8">@Model.FirstName</dd>
+
+            <dt class="col-sm-4">Prezime</dt>
+            <dd class="col-sm-8">@Model.LastName</dd>
+
+            <dt class="col-sm-4">JMBG</dt>
+            <dd class="col-sm-8">@Model.JMBG</dd>
+
+            <dt class="col-sm-4">Pozicija</dt>
+            <dd class="col-sm-8">@Model.Position</dd>
+
+            <dt class="col-sm-4">Pozicija</dt>
+            <dd class="col-sm-8">@Model.Position</dd>
+
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8">@Model.Email</dd>
+
+            <dt class="col-sm-4">Plata</dt>
+            <dd class="col-sm-8">@Model.Salary.ToString("N2")</dd>
+
+            <dt class="col-sm-4">Datum zaposlenja</dt>
+            <dd class="col-sm-8">
+                @(Model.HireDate.ToString("dd.MM.yyyy"))
+            
+            <dt class="col-sm-4">Datum kreiranja</dt>
+            <dd class="col-sm-8">
+                @(Model.CreatedDate.HasValue
+                        ? Model.CreatedDate.Value.ToString("dd.MM.yyyy")
+                        : "----")
+            </dd>
+
+            <dt class="col-sm-4">Datum kreiranja</dt>
+            <dd class="col-sm-8">
+                @(Model.ModifiedDate.HasValue
+                        ? Model.ModifiedDate.Value.ToString("dd.MM.yyyy")
+                        : "----")
+            </dd>
+        </dl>
+    </div>
+</div>
