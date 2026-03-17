@@ -1,0 +1,86 @@
+# .NET / Visual Studio
+
+## Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Aa]rtifacts/
+TestResults/
+
+## Compiled binaries / symbols
+*.dll
+*.exe
+*.pdb
+*.mdb
+*.ilk
+*.exp
+*.lib
+*.obj
+*.iobj
+*.ipdb
+*.idb
+
+## VS / MSBuild / tooling caches
+.vs/
+**/.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.cache
+*.tlog
+*.lastbuildstate
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+*.ipch
+*.aps
+*.ncb
+*.pfx
+
+## ReSharper / Rider / dotCover
+_ReSharper*/
+*.DotSettings.user
+.idea/
+.dotCover/
+
+## ASP.NET / IIS Express
+.vs/config/
+*.iisExpress
+/.vscode/
+
+## NuGet
+*.nupkg
+*.snupkg
+**/packages/*/*
+!**/packages/build/
+!**/packages/repositories.config
+*.nuget.props
+*.nuget.targets
+
+## Publish / deployment output
+**/publish/
+**/Publish/
+**/*.Publish.xml
+**/*.pubxml.user
+
+## Local databases / diagnostics
+*.mdf
+*.ldf
+*.sdf
+*.sqlite
+*.db
+*.db-shm
+*.db-wal
+*.pidb
+*.svclog
+*.log
+
+## OS / editor noise
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
