@@ -1,0 +1,138 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "X:\\Edu\\BHAS\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F2ECD860-F471-43B2-9FF1-3162356D8DA9}|BHAS\\BHAS.csproj|x:\\edu\\bhas\\bhas\\views\\department\\details.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F2ECD860-F471-43B2-9FF1-3162356D8DA9}|BHAS\\BHAS.csproj|solutionrelative:bhas\\views\\department\\details.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F2ECD860-F471-43B2-9FF1-3162356D8DA9}|BHAS\\BHAS.csproj|x:\\edu\\bhas\\bhas\\controllers\\departmentcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F2ECD860-F471-43B2-9FF1-3162356D8DA9}|BHAS\\BHAS.csproj|solutionrelative:bhas\\controllers\\departmentcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F2ECD860-F471-43B2-9FF1-3162356D8DA9}|BHAS\\BHAS.csproj|x:\\edu\\bhas\\bhas\\app_start\\routeconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F2ECD860-F471-43B2-9FF1-3162356D8DA9}|BHAS\\BHAS.csproj|solutionrelative:bhas\\app_start\\routeconfig.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F2ECD860-F471-43B2-9FF1-3162356D8DA9}|BHAS\\BHAS.csproj|x:\\edu\\bhas\\bhas\\views\\department\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F2ECD860-F471-43B2-9FF1-3162356D8DA9}|BHAS\\BHAS.csproj|solutionrelative:bhas\\views\\department\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ED133D52-0318-4C8C-9C95-AECFD2E18E0A}|BHAS.DbFirst\\BHAS.DbFirst.csproj|x:\\edu\\bhas\\bhas.dbfirst\\department.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ED133D52-0318-4C8C-9C95-AECFD2E18E0A}|BHAS.DbFirst\\BHAS.DbFirst.csproj|solutionrelative:bhas.dbfirst\\department.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F2ECD860-F471-43B2-9FF1-3162356D8DA9}|BHAS\\BHAS.csproj|x:\\edu\\bhas\\bhas\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F2ECD860-F471-43B2-9FF1-3162356D8DA9}|BHAS\\BHAS.csproj|solutionrelative:bhas\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ED133D52-0318-4C8C-9C95-AECFD2E18E0A}|BHAS.DbFirst\\BHAS.DbFirst.csproj|x:\\edu\\bhas\\bhas.dbfirst\\statestatisticsdbentities.edmx||{C99AEA30-8E36-4515-B76F-496F5A48A6AA}|",
+      "RelativeMoniker": "D:0:0:{ED133D52-0318-4C8C-9C95-AECFD2E18E0A}|BHAS.DbFirst\\BHAS.DbFirst.csproj|solutionrelative:bhas.dbfirst\\statestatisticsdbentities.edmx||{C99AEA30-8E36-4515-B76F-496F5A48A6AA}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Details.cshtml",
+              "DocumentMoniker": "X:\\Edu\\BHAS\\BHAS\\Views\\Department\\Details.cshtml",
+              "RelativeDocumentMoniker": "BHAS\\Views\\Department\\Details.cshtml",
+              "ToolTip": "X:\\Edu\\BHAS\\BHAS\\Views\\Department\\Details.cshtml",
+              "RelativeToolTip": "BHAS\\Views\\Department\\Details.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-03-17T10:44:50.705Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "RouteConfig.cs",
+              "DocumentMoniker": "X:\\Edu\\BHAS\\BHAS\\App_Start\\RouteConfig.cs",
+              "RelativeDocumentMoniker": "BHAS\\App_Start\\RouteConfig.cs",
+              "ToolTip": "X:\\Edu\\BHAS\\BHAS\\App_Start\\RouteConfig.cs",
+              "RelativeToolTip": "BHAS\\App_Start\\RouteConfig.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAAABIAAAA5AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-17T10:29:31.932Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "_Layout.cshtml",
+              "DocumentMoniker": "X:\\Edu\\BHAS\\BHAS\\Views\\Shared\\_Layout.cshtml",
+              "RelativeDocumentMoniker": "BHAS\\Views\\Shared\\_Layout.cshtml",
+              "ToolTip": "X:\\Edu\\BHAS\\BHAS\\Views\\Shared\\_Layout.cshtml",
+              "RelativeToolTip": "BHAS\\Views\\Shared\\_Layout.cshtml",
+              "ViewState": "AgIAAAYAAAAAAAAAAAAAABwAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-03-17T09:48:59.013Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Department.cs",
+              "DocumentMoniker": "X:\\Edu\\BHAS\\BHAS.DbFirst\\Department.cs",
+              "RelativeDocumentMoniker": "BHAS.DbFirst\\Department.cs",
+              "ToolTip": "X:\\Edu\\BHAS\\BHAS.DbFirst\\Department.cs",
+              "RelativeToolTip": "BHAS.DbFirst\\Department.cs",
+              "ViewState": "AgIAABYAAAAAAAAAAAAiwBoAAAAyAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-17T09:25:08.452Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Index.cshtml",
+              "DocumentMoniker": "X:\\Edu\\BHAS\\BHAS\\Views\\Department\\Index.cshtml",
+              "RelativeDocumentMoniker": "BHAS\\Views\\Department\\Index.cshtml",
+              "ToolTip": "X:\\Edu\\BHAS\\BHAS\\Views\\Department\\Index.cshtml",
+              "RelativeToolTip": "BHAS\\Views\\Department\\Index.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-03-17T09:23:11.102Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "DepartmentController.cs",
+              "DocumentMoniker": "X:\\Edu\\BHAS\\BHAS\\Controllers\\DepartmentController.cs",
+              "RelativeDocumentMoniker": "BHAS\\Controllers\\DepartmentController.cs",
+              "ToolTip": "X:\\Edu\\BHAS\\BHAS\\Controllers\\DepartmentController.cs",
+              "RelativeToolTip": "BHAS\\Controllers\\DepartmentController.cs",
+              "ViewState": "AgIAABAAAAAAAAAAAAAQwCEAAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-17T09:21:43.005Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "StateStatisticsDBEntities.edmx [Diagram1]",
+              "DocumentMoniker": "X:\\Edu\\BHAS\\BHAS.DbFirst\\StateStatisticsDBEntities.edmx",
+              "RelativeDocumentMoniker": "BHAS.DbFirst\\StateStatisticsDBEntities.edmx",
+              "ToolTip": "X:\\Edu\\BHAS\\BHAS.DbFirst\\StateStatisticsDBEntities.edmx [Diagram1]",
+              "RelativeToolTip": "BHAS.DbFirst\\StateStatisticsDBEntities.edmx [Diagram1]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001116|",
+              "WhenOpened": "2026-03-17T09:20:20.591Z",
+              "EditorCaption": " [Diagram1]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

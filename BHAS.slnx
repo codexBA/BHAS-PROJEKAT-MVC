@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BHAS.DbFirst/BHAS.DbFirst.csproj" />
+  <Project Path="BHAS/BHAS.csproj" />
+</Solution>

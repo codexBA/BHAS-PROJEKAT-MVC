@@ -1,0 +1,30 @@
+﻿
+@model List<BHAS.DbFirst.Department>
+
+@{
+    ViewBag.Title = "Odjeli";
+}
+
+<h2>Odjeli</h2>
+
+<table class="table table-bordered table-hover table-striped">
+    <thead class="table-danger">
+        <tr>
+            <th>Naziv odjela</th>
+            <th>Šifra</th>
+            <th>Budžet</th>
+            <th>Akcije</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var dpt in Model)
+        {
+            <tr>
+                <td>@dpt.DepartmentName</td>
+                <td>@dpt.DepartmentCode</td>
+                <td>@dpt.Budget</td>
+                <td>--</td>
+            </tr>
+        }
+    </tbody>
+</table>

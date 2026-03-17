@@ -1,0 +1,265 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Schema Namespace="StateStatisticsDBModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+  <EntityType Name="sysdiagram">
+    <Key>
+      <PropertyRef Name="diagram_id" />
+    </Key>
+    <Property Name="name" Type="String" MaxLength="128" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="principal_id" Type="Int32" Nullable="false" />
+    <Property Name="diagram_id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+    <Property Name="version" Type="Int32" />
+    <Property Name="definition" Type="Binary" MaxLength="Max" FixedLength="false" />
+  </EntityType>
+  <EntityType Name="Department">
+    <Key>
+      <PropertyRef Name="DepartmentID" />
+    </Key>
+    <Property Name="DepartmentID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+    <Property Name="DepartmentName" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="DepartmentCode" Type="String" MaxLength="20" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="Budget" Type="Decimal" Precision="15" Scale="2" Nullable="false" />
+    <Property Name="ManagerID" Type="Int32" />
+    <Property Name="CreatedDate" Type="DateTime" Precision="7" />
+    <Property Name="ModifiedDate" Type="DateTime" Precision="7" />
+    <NavigationProperty Name="Employee" Relationship="Self.FK_Departments_Manager" FromRole="Departments" ToRole="Employees" />
+    <NavigationProperty Name="Employees" Relationship="Self.FK_Employees_Departments" FromRole="Departments" ToRole="Employees" />
+    <NavigationProperty Name="Projects" Relationship="Self.FK_Projects_Departments" FromRole="Departments" ToRole="Projects" />
+    <NavigationProperty Name="Reports" Relationship="Self.FK_Reports_Departments" FromRole="Departments" ToRole="Reports" />
+  </EntityType>
+  <EntityType Name="EconomicData">
+    <Key>
+      <PropertyRef Name="DataID" />
+    </Key>
+    <Property Name="DataID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+    <Property Name="RegionID" Type="Int32" Nullable="false" />
+    <Property Name="Year" Type="Int32" Nullable="false" />
+    <Property Name="GDP" Type="Decimal" Precision="18" Scale="2" />
+    <Property Name="UnemploymentRate" Type="Decimal" Precision="5" Scale="2" />
+    <Property Name="AverageSalary" Type="Decimal" Precision="10" Scale="2" />
+    <Property Name="InflationRate" Type="Decimal" Precision="5" Scale="2" />
+    <Property Name="RecordedDate" Type="DateTime" Precision="7" />
+    <NavigationProperty Name="Region" Relationship="Self.FK_EconomicData_Regions" FromRole="EconomicData" ToRole="Regions" />
+  </EntityType>
+  <EntityType Name="Employee">
+    <Key>
+      <PropertyRef Name="EmployeeID" />
+    </Key>
+    <Property Name="EmployeeID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+    <Property Name="FirstName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="LastName" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="JMBG" Type="String" MaxLength="13" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="DepartmentID" Type="Int32" Nullable="false" />
+    <Property Name="Position" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="Salary" Type="Decimal" Precision="10" Scale="2" Nullable="false" />
+    <Property Name="HireDate" Type="DateTime" Nullable="false" Precision="0" />
+    <Property Name="Email" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+    <Property Name="CreatedDate" Type="DateTime" Precision="7" />
+    <Property Name="ModifiedDate" Type="DateTime" Precision="7" />
+    <NavigationProperty Name="Departments" Relationship="Self.FK_Departments_Manager" FromRole="Employees" ToRole="Departments" />
+    <NavigationProperty Name="Department" Relationship="Self.FK_Employees_Departments" FromRole="Employees" ToRole="Departments" />
+    <NavigationProperty Name="Reports" Relationship="Self.FK_Reports_CreatedBy" FromRole="Employees" ToRole="Reports" />
+  </EntityType>
+  <EntityType Name="Project">
+    <Key>
+      <PropertyRef Name="ProjectID" />
+    </Key>
+    <Property Name="ProjectID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+    <Property Name="ProjectName" Type="String" MaxLength="200" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="DepartmentID" Type="Int32" Nullable="false" />
+    <Property Name="Budget" Type="Decimal" Precision="15" Scale="2" Nullable="false" />
+    <Property Name="StartDate" Type="DateTime" Nullable="false" Precision="0" />
+    <Property Name="EndDate" Type="DateTime" Precision="0" />
+    <Property Name="Status" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="Description" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+    <Property Name="CreatedDate" Type="DateTime" Precision="7" />
+    <Property Name="ModifiedDate" Type="DateTime" Precision="7" />
+    <NavigationProperty Name="Department" Relationship="Self.FK_Projects_Departments" FromRole="Projects" ToRole="Departments" />
+  </EntityType>
+  <EntityType Name="Region">
+    <Key>
+      <PropertyRef Name="RegionID" />
+    </Key>
+    <Property Name="RegionID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+    <Property Name="RegionName" Type="String" MaxLength="100" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="RegionCode" Type="String" MaxLength="10" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="Population" Type="Int32" Nullable="false" />
+    <Property Name="Area" Type="Decimal" Precision="10" Scale="2" Nullable="false" />
+    <Property Name="CreatedDate" Type="DateTime" Precision="7" />
+    <Property Name="ModifiedDate" Type="DateTime" Precision="7" />
+    <NavigationProperty Name="EconomicDatas" Relationship="Self.FK_EconomicData_Regions" FromRole="Regions" ToRole="EconomicData" />
+    <NavigationProperty Name="ReportDatas" Relationship="Self.FK_ReportData_Regions" FromRole="Regions" ToRole="ReportData" />
+  </EntityType>
+  <EntityType Name="ReportData">
+    <Key>
+      <PropertyRef Name="ReportDataID" />
+    </Key>
+    <Property Name="ReportDataID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+    <Property Name="ReportID" Type="Int32" Nullable="false" />
+    <Property Name="DataType" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="Value" Type="Decimal" Precision="18" Scale="2" />
+    <Property Name="TextValue" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+    <Property Name="RegionID" Type="Int32" />
+    <Property Name="Year" Type="Int32" />
+    <Property Name="CreatedDate" Type="DateTime" Precision="7" />
+    <NavigationProperty Name="Region" Relationship="Self.FK_ReportData_Regions" FromRole="ReportData" ToRole="Regions" />
+    <NavigationProperty Name="Report" Relationship="Self.FK_ReportData_Reports" FromRole="ReportData" ToRole="Reports" />
+  </EntityType>
+  <EntityType Name="Report">
+    <Key>
+      <PropertyRef Name="ReportID" />
+    </Key>
+    <Property Name="ReportID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+    <Property Name="ReportName" Type="String" MaxLength="200" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="DepartmentID" Type="Int32" Nullable="false" />
+    <Property Name="CreatedBy" Type="Int32" Nullable="false" />
+    <Property Name="CreatedDate" Type="DateTime" Precision="7" />
+    <Property Name="Status" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="ReportType" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+    <Property Name="Description" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+    <NavigationProperty Name="Department" Relationship="Self.FK_Reports_Departments" FromRole="Reports" ToRole="Departments" />
+    <NavigationProperty Name="Employee" Relationship="Self.FK_Reports_CreatedBy" FromRole="Reports" ToRole="Employees" />
+    <NavigationProperty Name="ReportDatas" Relationship="Self.FK_ReportData_Reports" FromRole="Reports" ToRole="ReportData" />
+  </EntityType>
+  <Association Name="FK_Departments_Manager">
+    <End Role="Employees" Type="Self.Employee" Multiplicity="0..1" />
+    <End Role="Departments" Type="Self.Department" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Employees">
+        <PropertyRef Name="EmployeeID" />
+      </Principal>
+      <Dependent Role="Departments">
+        <PropertyRef Name="ManagerID" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Employees_Departments">
+    <End Role="Departments" Type="Self.Department" Multiplicity="1" />
+    <End Role="Employees" Type="Self.Employee" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Departments">
+        <PropertyRef Name="DepartmentID" />
+      </Principal>
+      <Dependent Role="Employees">
+        <PropertyRef Name="DepartmentID" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Projects_Departments">
+    <End Role="Departments" Type="Self.Department" Multiplicity="1" />
+    <End Role="Projects" Type="Self.Project" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Departments">
+        <PropertyRef Name="DepartmentID" />
+      </Principal>
+      <Dependent Role="Projects">
+        <PropertyRef Name="DepartmentID" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Reports_Departments">
+    <End Role="Departments" Type="Self.Department" Multiplicity="1" />
+    <End Role="Reports" Type="Self.Report" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Departments">
+        <PropertyRef Name="DepartmentID" />
+      </Principal>
+      <Dependent Role="Reports">
+        <PropertyRef Name="DepartmentID" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_EconomicData_Regions">
+    <End Role="Regions" Type="Self.Region" Multiplicity="1">
+      <OnDelete Action="Cascade" />
+    </End>
+    <End Role="EconomicData" Type="Self.EconomicData" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Regions">
+        <PropertyRef Name="RegionID" />
+      </Principal>
+      <Dependent Role="EconomicData">
+        <PropertyRef Name="RegionID" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_Reports_CreatedBy">
+    <End Role="Employees" Type="Self.Employee" Multiplicity="1" />
+    <End Role="Reports" Type="Self.Report" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Employees">
+        <PropertyRef Name="EmployeeID" />
+      </Principal>
+      <Dependent Role="Reports">
+        <PropertyRef Name="CreatedBy" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_ReportData_Regions">
+    <End Role="Regions" Type="Self.Region" Multiplicity="0..1" />
+    <End Role="ReportData" Type="Self.ReportData" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Regions">
+        <PropertyRef Name="RegionID" />
+      </Principal>
+      <Dependent Role="ReportData">
+        <PropertyRef Name="RegionID" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <Association Name="FK_ReportData_Reports">
+    <End Role="Reports" Type="Self.Report" Multiplicity="1">
+      <OnDelete Action="Cascade" />
+    </End>
+    <End Role="ReportData" Type="Self.ReportData" Multiplicity="*" />
+    <ReferentialConstraint>
+      <Principal Role="Reports">
+        <PropertyRef Name="ReportID" />
+      </Principal>
+      <Dependent Role="ReportData">
+        <PropertyRef Name="ReportID" />
+      </Dependent>
+    </ReferentialConstraint>
+  </Association>
+  <EntityContainer Name="StateStatisticsDBEntities" annotation:LazyLoadingEnabled="true">
+    <EntitySet Name="sysdiagrams" EntityType="Self.sysdiagram" />
+    <EntitySet Name="Departments" EntityType="Self.Department" />
+    <EntitySet Name="EconomicDatas" EntityType="Self.EconomicData" />
+    <EntitySet Name="Employees" EntityType="Self.Employee" />
+    <EntitySet Name="Projects" EntityType="Self.Project" />
+    <EntitySet Name="Regions" EntityType="Self.Region" />
+    <EntitySet Name="ReportDatas" EntityType="Self.ReportData" />
+    <EntitySet Name="Reports" EntityType="Self.Report" />
+    <AssociationSet Name="FK_Departments_Manager" Association="Self.FK_Departments_Manager">
+      <End Role="Employees" EntitySet="Employees" />
+      <End Role="Departments" EntitySet="Departments" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Employees_Departments" Association="Self.FK_Employees_Departments">
+      <End Role="Departments" EntitySet="Departments" />
+      <End Role="Employees" EntitySet="Employees" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Projects_Departments" Association="Self.FK_Projects_Departments">
+      <End Role="Departments" EntitySet="Departments" />
+      <End Role="Projects" EntitySet="Projects" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Reports_Departments" Association="Self.FK_Reports_Departments">
+      <End Role="Departments" EntitySet="Departments" />
+      <End Role="Reports" EntitySet="Reports" />
+    </AssociationSet>
+    <AssociationSet Name="FK_EconomicData_Regions" Association="Self.FK_EconomicData_Regions">
+      <End Role="Regions" EntitySet="Regions" />
+      <End Role="EconomicData" EntitySet="EconomicDatas" />
+    </AssociationSet>
+    <AssociationSet Name="FK_Reports_CreatedBy" Association="Self.FK_Reports_CreatedBy">
+      <End Role="Employees" EntitySet="Employees" />
+      <End Role="Reports" EntitySet="Reports" />
+    </AssociationSet>
+    <AssociationSet Name="FK_ReportData_Regions" Association="Self.FK_ReportData_Regions">
+      <End Role="Regions" EntitySet="Regions" />
+      <End Role="ReportData" EntitySet="ReportDatas" />
+    </AssociationSet>
+    <AssociationSet Name="FK_ReportData_Reports" Association="Self.FK_ReportData_Reports">
+      <End Role="Reports" EntitySet="Reports" />
+      <End Role="ReportData" EntitySet="ReportDatas" />
+    </AssociationSet>
+  </EntityContainer>
+</Schema>
