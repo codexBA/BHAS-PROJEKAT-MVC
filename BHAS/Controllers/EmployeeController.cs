@@ -12,7 +12,10 @@ namespace BHAS.Controllers
         // Ne koristi se trenutno
         public ActionResult Index()
         {
-            return View();
+            using (var db = new StateStatisticsDBEntities())
+            { 
+                return View(db.Employees.ToList());
+            }
         }
 
         /// <summary>
@@ -33,6 +36,15 @@ namespace BHAS.Controllers
 
         public ActionResult Create()
         {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var departments = db.Departments
+                    .OrderBy(x => x.DepartmentName)
+                    .ToList();
+
+                ViewBag.DepartmentID = new SelectList(departments, "DepartmentID", "DepartmentName", null);
+            }
+            //
             return View();
         }
 
@@ -67,6 +79,9 @@ namespace BHAS.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create(Employee model)
         {
+            //if (model.DepartmentID < 1)
+            //   ModelState.AddModelError("DepartmentID", "Odaberi odjel");
+
             if (ModelState.IsValid)
             {
                 // podaci su ispravni => snimi u bazu

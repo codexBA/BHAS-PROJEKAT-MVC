@@ -11,17 +11,20 @@
     @Html.AntiForgeryToken()
 
     <div class="form-horizontal" style="max-width: 600px;">
+
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.FirstName, "Ime", new { @class = "control-label" })
             @Html.EditorFor(m => m.FirstName,
-                        new { htmlAttributes = new { @class = "form-control" } })
+                 new { htmlAttributes = new { @class = "form-control" } })
             @Html.ValidationMessageFor(m => m.FirstName, "", new { @class = "text-danger" })
         </div>
 
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.LastName, "Prezime", new { @class = "control-label" })
             @Html.EditorFor(m => m.LastName,
-                        new { htmlAttributes = new { @class = "form-control" } })
+                 new { htmlAttributes = new { @class = "form-control" } })
             @Html.ValidationMessageFor(m => m.LastName, "", new { @class = "text-danger" })
 
         </div>
@@ -29,7 +32,7 @@
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.JMBG, "JBMG", new { @class = "control-label" })
             @Html.EditorFor(m => m.JMBG,
-                        new { htmlAttributes = new { @class = "form-control" } })
+                 new { htmlAttributes = new { @class = "form-control" } })
             @Html.ValidationMessageFor(m => m.JMBG, "", new { @class = "text-danger" })
 
         </div>
@@ -37,7 +40,7 @@
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.Position, "Pozicija", new { @class = "control-label" })
             @Html.EditorFor(m => m.Position,
-                        new { htmlAttributes = new { @class = "form-control" } })
+                 new { htmlAttributes = new { @class = "form-control" } })
             @Html.ValidationMessageFor(m => m.Position, "", new { @class = "text-danger" })
 
         </div>
@@ -45,7 +48,7 @@
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.Salary, "Plata", new { @class = "control-label" })
             @Html.EditorFor(m => m.Salary,
-                        new { htmlAttributes = new { @class = "form-control" } })
+                 new { htmlAttributes = new { @class = "form-control" } })
             @Html.ValidationMessageFor(m => m.Salary, "", new { @class = "text-danger" })
 
         </div>
@@ -53,41 +56,52 @@
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.Email, "Email", new { @class = "control-label" })
             @Html.EditorFor(m => m.Email,
-                        new { htmlAttributes = new { @class = "form-control" } })
+                 new { htmlAttributes = new { @class = "form-control" } })
             @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
 
         </div>
 
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.HireDate, "Datum zaposlenja",
-                        new { @class = "control-label" })
+                 new { @class = "control-label" })
             @Html.EditorFor(m => m.HireDate,
-                        new
-                             {
-                                 htmlAttributes = new
-                                 {
-                                     @class = "form-control",
-                                     type = "date"
-                                 }
-                             })
+                 new
+                 {
+                     htmlAttributes = new
+                     {
+                         @class = "form-control",
+                         type = "date"
+                     }
+                 })
             @Html.ValidationMessageFor(m => m.HireDate, "", new { @class = "text-danger" })
 
         </div>
 
 
         <div class="form-group mb-3">
-            <label class="control-label" for="DepartmentID">Odjel</label>
+            @Html.LabelFor(m => m.DepartmentID, "Odjel", new { @class = "control-label" })
 
-            <select class="form-control" name="DepartmentID" id="DepartmentID">
-                <option value="">-- odaberi odjel --</option>
-                <option value="1"> Ministarstvo finansija </option>
-                <option value="4"> Agencija za statistiku </option>
-            </select>
+            @Html.DropDownList("DepartmentID", null, "-- odaberi odjel --", new { @class = "form-control" })
+
             @Html.ValidationMessageFor(m => m.DepartmentID, "", new { @class = "text-danger" })
 
+            @*   <br />
+                <br />
+
+                <label class="control-label" for="DepartmentID">Odjel</label>
+
+                <select class="form-control" name="DepartmentID" id="DepartmentID">
+                    <option value="">-- odaberi odjel --</option>
+                    <option value="1"> Ministarstvo finansija </option>
+                    <option value="4"> Agencija za statistiku </option>
+                </select>
+            *@
+
         </div>
-
-
     </div>
     <button type="submit" class="btn btn-primary">Snimi</button>
+}
+
+@section scripts{
+    @Scripts.Render("~/bundles/jqueryval")
 }

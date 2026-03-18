@@ -62,6 +62,7 @@
     <Compile Include="Employee.cs">
       <DependentUpon>StateStatisticsDBEntities.tt</DependentUpon>
     </Compile>
+    <Compile Include="EmployeeMetadata.cs" />
     <Compile Include="Project.cs">
       <DependentUpon>StateStatisticsDBEntities.tt</DependentUpon>
     </Compile>
