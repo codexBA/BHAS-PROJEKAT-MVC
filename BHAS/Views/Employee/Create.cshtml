@@ -8,41 +8,54 @@
 
 @using (Html.BeginForm())
 {
+    @Html.AntiForgeryToken()
+
     <div class="form-horizontal" style="max-width: 600px;">
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.FirstName, "Ime", new { @class = "control-label" })
             @Html.EditorFor(m => m.FirstName,
                         new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.FirstName, "", new { @class = "text-danger" })
         </div>
 
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.LastName, "Prezime", new { @class = "control-label" })
             @Html.EditorFor(m => m.LastName,
                         new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.LastName, "", new { @class = "text-danger" })
+
         </div>
 
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.JMBG, "JBMG", new { @class = "control-label" })
             @Html.EditorFor(m => m.JMBG,
                         new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.JMBG, "", new { @class = "text-danger" })
+
         </div>
 
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.Position, "Pozicija", new { @class = "control-label" })
             @Html.EditorFor(m => m.Position,
                         new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.Position, "", new { @class = "text-danger" })
+
         </div>
 
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.Salary, "Plata", new { @class = "control-label" })
             @Html.EditorFor(m => m.Salary,
                         new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.Salary, "", new { @class = "text-danger" })
+
         </div>
 
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.Email, "Email", new { @class = "control-label" })
             @Html.EditorFor(m => m.Email,
                         new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+
         </div>
 
         <div class="form-group mb-3">
@@ -57,6 +70,8 @@
                                      type = "date"
                                  }
                              })
+            @Html.ValidationMessageFor(m => m.HireDate, "", new { @class = "text-danger" })
+
         </div>
 
 
@@ -68,6 +83,7 @@
                 <option value="1"> Ministarstvo finansija </option>
                 <option value="4"> Agencija za statistiku </option>
             </select>
+            @Html.ValidationMessageFor(m => m.DepartmentID, "", new { @class = "text-danger" })
 
         </div>
 

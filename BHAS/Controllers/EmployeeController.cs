@@ -36,6 +36,12 @@ namespace BHAS.Controllers
             return View();
         }
 
+
+        /// <summary>
+        /// POST - brisanje zaposlenika 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpPost]
         public ActionResult Delete(int id)
         {
@@ -58,6 +64,7 @@ namespace BHAS.Controllers
 
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult Create(Employee model)
         {
             if (ModelState.IsValid)
