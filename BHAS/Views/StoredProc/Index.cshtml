@@ -1,0 +1,113 @@
+﻿@{
+    ViewBag.Title = "Pohranjene procedure";
+}
+
+<h2>Pohranjene procedure (Stored Procedures)</h2>
+<p class="text-muted">Primjeri pozivanja stored procedura iz Entity Framework 6 — sva 4 obrasca.</p>
+
+<div class="row mt-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <strong>SqlQuery&lt;Employee&gt;</strong> — postojeći entitet
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">SP 1 — Svi zaposlenici</h5>
+                <p class="card-text text-muted small">
+                    <code>EXEC Stats.sp_GetAllEmployees</code><br />
+                    Bez parametara, vraća sve zaposlenike.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <strong>SqlQuery&lt;Employee&gt;</strong> — jedan parametar
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">SP 2 — Zaposlenici po odjelu</h5>
+                <p class="card-text text-muted small">
+                    <code>EXEC Stats.sp_GetEmployeesByDepartment @@DepartmentID</code><br />
+                    Filter po odjelu (dropdown).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <strong>SqlQuery&lt;Employee&gt;</strong> — nullable parametri
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">SP 3 — Pretraga zaposlenika</h5>
+                <p class="card-text text-muted small">
+                    <code>EXEC Stats.sp_SearchEmployees @@DepartmentID, @@MinSalary, @@MaxSalary</code><br />
+                    Sva tri parametra su opcionalna (NULL = bez filtera).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <strong>SqlQuery&lt;CustomViewModel&gt;</strong> — prilagođeni oblik
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">SP 4 — Sažetak odjela</h5>
+                <p class="card-text text-muted small">
+                    <code>EXEC Stats.sp_GetDepartmentSummary</code><br />
+                    JOIN + GROUP BY — rezultat nije mapiran ni na jedan EF entitet.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <strong>SqlQuery&lt;CustomViewModel&gt;</strong> — izračunata kolona
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">SP 5 — Regionalna statistika po godini</h5>
+                <p class="card-text text-muted small">
+                    <code>EXEC Stats.sp_GetRegionalStatsByYear @@Year</code><br />
+                    GDPPerCapita = GDP / Population računato u SQL-u.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-warning">
+                <strong>ExecuteSqlCommand</strong> → int (broj ažuriranih redova)
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">SP 6 — Povišica plata</h5>
+                <p class="card-text text-muted small">
+                    <code>EXEC Stats.sp_GiveSalaryRaise @@DepartmentID, @@PercentageIncrease</code><br />
+                    UPDATE bez SELECT — vraća broj ažuriranih zaposlenika.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-warning">
+                <strong>ExecuteSqlCommand</strong> → int (broj ažuriranih redova)
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">SP 7 — Ažuriranje statusa projekta</h5>
+                <p class="card-text text-muted small">
+                    <code>EXEC Stats.sp_UpdateProjectStatus @@ProjectID, @@NewStatus</code><br />
+                    UPDATE bez SELECT — vraća 1 ako je projekt pronađen.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

@@ -109,6 +109,8 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="SQL\setup-database.sql" />
+    <Content Include="SQL\stored-procedures.sql" />
     <Content Include="StateStatisticsDBEntities.Context.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>StateStatisticsDBEntities.Context.cs</LastGenOutput>
@@ -123,6 +125,7 @@
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
