@@ -36,6 +36,26 @@ namespace BHAS.Controllers
             return View();
         }
 
+        [HttpPost]
+        public ActionResult Delete(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var employeeToDelete = db.Employees.Find(id);
+                // var employeeToDelete = db.Employees.FirstOrDefault(emp => emp.EmployeeID == id);
+                if (employeeToDelete == null)
+                    return HttpNotFound();
+                // uzimamo ID odjela kako bi definisali putanju za vracanje: prikaz detalja odjela
+                var departmentId = employeeToDelete.DepartmentID;
+                //
+                db.Employees.Remove(employeeToDelete);
+                db.SaveChanges(); // ovo je obavezno i okida snimanje naznacenih izmjena
+
+                // vracemo se na listu detalja odjela koji prikazuje i listu zaposlenih u njemu
+                return RedirectToAction("Details", "Department", new { id = departmentId });
+            }
+        }
+
 
         [HttpPost]
         public ActionResult Create(Employee model)
@@ -62,7 +82,7 @@ namespace BHAS.Controllers
                     }
                 }
 
-                return RedirectToAction("Details", "Department", new { id=model.DepartmentID }); // vrati se na listu zaposlenih
+                return RedirectToAction("Details", "Department", new { id = model.DepartmentID }); // vrati se na listu zaposlenih
             }
             // nije validan => vrati se na formu 
             return View(model);

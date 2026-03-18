@@ -47,9 +47,16 @@
     </div>
 </div>
 <div style="margin-top:15px">
-    @Html.ActionLink("Nazad", @* tekst linka *@ 
-                     "Details", @* naziv metode/akcije *@
-                     "Department", @* naziv kontrolera *@
-                new { id = Model.DepartmentID }, 
-                new {@class="btn btn-secondary"})
+    @Html.ActionLink("Nazad",@* tekst linka *@
+                        "Details", @* naziv metode/akcije *@
+                        "Department", @* naziv kontrolera *@
+                        new { id = Model.DepartmentID },
+                        new { @class = "btn btn-secondary" })
+
+    @using (Html.BeginForm("Delete", "Employee", new {id = Model.EmployeeID}, FormMethod.Post))
+    {
+        <div style="margin-top: 15px">
+            <button type="submit" class="btn btn-danger">Briši</button>
+        </div>
+    }
 </div>
