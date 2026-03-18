@@ -20,9 +20,6 @@
             <dt class="col-sm-4">Pozicija</dt>
             <dd class="col-sm-8">@Model.Position</dd>
 
-            <dt class="col-sm-4">Pozicija</dt>
-            <dd class="col-sm-8">@Model.Position</dd>
-
             <dt class="col-sm-4">Email</dt>
             <dd class="col-sm-8">@Model.Email</dd>
 
@@ -32,7 +29,7 @@
             <dt class="col-sm-4">Datum zaposlenja</dt>
             <dd class="col-sm-8">
                 @(Model.HireDate.ToString("dd.MM.yyyy"))
-            
+
             <dt class="col-sm-4">Datum kreiranja</dt>
             <dd class="col-sm-8">
                 @(Model.CreatedDate.HasValue
@@ -48,4 +45,11 @@
             </dd>
         </dl>
     </div>
+</div>
+<div style="margin-top:15px">
+    @Html.ActionLink("Nazad", @* tekst linka *@ 
+                     "Details", @* naziv metode/akcije *@
+                     "Department", @* naziv kontrolera *@
+                new { id = Model.DepartmentID }, 
+                new {@class="btn btn-secondary"})
 </div>

@@ -1,0 +1,77 @@
+﻿@model BHAS.DbFirst.Employee
+
+@{
+    ViewBag.Title = "Novi zaposleni";
+}
+
+<h2>Novi zaposleni</h2>
+
+@using (Html.BeginForm())
+{
+    <div class="form-horizontal" style="max-width: 600px;">
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.FirstName, "Ime", new { @class = "control-label" })
+            @Html.EditorFor(m => m.FirstName,
+                        new { htmlAttributes = new { @class = "form-control" } })
+        </div>
+
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.LastName, "Prezime", new { @class = "control-label" })
+            @Html.EditorFor(m => m.LastName,
+                        new { htmlAttributes = new { @class = "form-control" } })
+        </div>
+
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.JMBG, "JBMG", new { @class = "control-label" })
+            @Html.EditorFor(m => m.JMBG,
+                        new { htmlAttributes = new { @class = "form-control" } })
+        </div>
+
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.Position, "Pozicija", new { @class = "control-label" })
+            @Html.EditorFor(m => m.Position,
+                        new { htmlAttributes = new { @class = "form-control" } })
+        </div>
+
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.Salary, "Plata", new { @class = "control-label" })
+            @Html.EditorFor(m => m.Salary,
+                        new { htmlAttributes = new { @class = "form-control" } })
+        </div>
+
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.Email, "Email", new { @class = "control-label" })
+            @Html.EditorFor(m => m.Email,
+                        new { htmlAttributes = new { @class = "form-control" } })
+        </div>
+
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.HireDate, "Datum zaposlenja",
+                        new { @class = "control-label" })
+            @Html.EditorFor(m => m.HireDate,
+                        new
+                             {
+                                 htmlAttributes = new
+                                 {
+                                     @class = "form-control",
+                                     type = "date"
+                                 }
+                             })
+        </div>
+
+
+        <div class="form-group mb-3">
+            <label class="control-label" for="DepartmentID">Odjel</label>
+
+            <select class="form-control" name="DepartmentID" id="DepartmentID">
+                <option value="">-- odaberi odjel --</option>
+                <option value="1"> Ministarstvo finansija </option>
+                <option value="4"> Agencija za statistiku </option>
+            </select>
+
+        </div>
+
+
+    </div>
+    <button type="submit" class="btn btn-primary">Snimi</button>
+}

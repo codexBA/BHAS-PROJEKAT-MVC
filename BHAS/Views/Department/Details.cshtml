@@ -47,6 +47,7 @@
             <tr>
                 <th>Ime</th>
                 <th>Prezime</th>
+                <th>JMBG</th>
                 <th>Pozicija</th>
                 <th>Email</th>
                 <th></th>
@@ -58,12 +59,14 @@
                 <tr>
                     <td>@emp.FirstName</td>
                     <td>@emp.LastName</td>
+                    <td>@emp.JMBG</td>
                     <td>@emp.Position</td>
                     <td>@emp.Email</td>
-                    <td>@Html.ActionLink("Detalji", "Details", "Employee", 
-                                                new {id=emp.EmployeeID}, 
-                                                new { @class = "btn btn-sm btn-info" })
-                    </td>
+                    <td>
+                        @Html.ActionLink("Detalji", "Details", "Employee",
+                                            new { id = emp.EmployeeID },
+                                            new { @class = "btn btn-sm btn-info" })
+                </td>
                 </tr>
             }
         </tbody>
@@ -71,5 +74,14 @@
 
 </div>
 <div style="margin-top:15px;">
-    @Html.ActionLink("Nazad", "Index", null, new { @class = "btn btn-sm btn-secondary" })
+    @Html.ActionLink("Nazad", 
+                        "Index", 
+                        null, 
+                        new { @class = "btn btn-sm btn-secondary" })
+
+    @Html.ActionLink("Novi zaposleni", 
+                        "Create", 
+                        "Employee", 
+                        null, @* argumenti *@
+                        new {@class="btn btn-sm btn-danger"})
 </div>
