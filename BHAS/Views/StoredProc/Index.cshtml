@@ -17,6 +17,8 @@
                     <code>EXEC Stats.sp_GetAllEmployees</code><br />
                     Bez parametara, vraća sve zaposlenike.
                 </p>
+
+                @Html.ActionLink("Otvori", "AllEmployees", null, new {@class="btn btn-sm btn-primary"})
             </div>
         </div>
     </div>
@@ -47,6 +49,7 @@
                     <code>EXEC Stats.sp_SearchEmployees @@DepartmentID, @@MinSalary, @@MaxSalary</code><br />
                     Sva tri parametra su opcionalna (NULL = bez filtera).
                 </p>
+                @Html.ActionLink("Otvori", "SearchEmployees", null, new { @class = "btn btn-sm btn-primary" })
             </div>
         </div>
     </div>

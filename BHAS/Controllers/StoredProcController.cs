@@ -1,5 +1,8 @@
-﻿using System;
+﻿using BHAS.DbFirst;
+using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
@@ -12,6 +15,74 @@ namespace BHAS.Controllers
         public ActionResult Index()
         {
             return View();
+        }
+
+        /// <summary>
+        /// Prikazuje listu svih zaposlenika. 
+        /// Poziva SP: [Stats].[sp_GetAllEmployees]
+        /// </summary>
+        /// <returns></returns>
+        public ActionResult AllEmployees()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var query = db.Database.SqlQuery<Employee>("Exec [Stats].[sp_GetAllEmployees]");
+                var employeess = query.ToList();
+                //
+                return View(employeess);
+            }
+        }
+
+        public ActionResult AllEmployeesQuery()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var query = db.Database.SqlQuery<Employee>("SELECT * FROM Stats.Employees");
+                var employeess = query.ToList();
+                //
+                return View("AllEmployees", employeess);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="deptId"></param>
+        /// <param name="min"></param>
+        /// <param name="max"></param>
+        /// <returns></returns>
+        public ActionResult SearchEmployees(int? deptId, decimal? min, decimal? max)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentSelect(db, deptId);
+
+                var p1 = new SqlParameter("@DepartmentID", (object)deptId ?? System.DBNull.Value);
+                var p2 = new SqlParameter("@MinSalary", (object)min ?? DBNull.Value);
+                var p3 = new SqlParameter("@MaxSalary", (object)max ?? DBNull.Value);
+
+                var query = db.Database
+                    .SqlQuery<Employee>(
+                        "Exec [Stats].[sp_SearchEmployees] @DepartmentID, @MinSalary, @MaxSalary",
+                         p1, p2, p3
+                        );
+
+                var employeess = query.ToList();
+
+                return View(employeess);
+            }
+        }
+
+        private void PopulateDepartmentSelect(StateStatisticsDBEntities db, int? selectedDepartmentId = null)
+        {
+            var departments = db.Departments
+                   .OrderBy(x => x.DepartmentName)
+                   .ToList();
+
+            ViewBag.DepartmentID = new SelectList(departments,
+                                                    "DepartmentID",
+                                                    "DepartmentName",
+                                                    selectedDepartmentId);
         }
     }
 }
