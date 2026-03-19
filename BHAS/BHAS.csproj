@@ -134,6 +134,7 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Models\DepartmentSummaryViewModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -197,10 +198,11 @@
     <Content Include="Views\StoredProc\AllEmployees.cshtml" />
     <Content Include="Views\StoredProc\SearchEmployees.cshtml" />
     <Content Include="Views\Shared\_EmployeesShared.cshtml" />
+    <Content Include="Views\StoredProc\SalaryRaise.cshtml" />
+    <Content Include="Views\StoredProc\DepartmentSummary.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
-    <Folder Include="Models\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\bootstrap.rtl.min.css.map" />

@@ -1,0 +1,48 @@
+﻿@{
+    ViewBag.Title = "Povišica";
+}
+
+<h2>Povišica</h2>
+
+<div>
+    @if(ViewBag.RowsAffected != null) { 
+        <div class="alert alert-info">
+            Plate su uspješno povećane za @ViewBag.PercentageIncrease %. 
+            <br />
+            Ukupno azurirano <strong> @ViewBag.RowsAffected zaposlenika</strong>
+        </div>
+    }
+</div>
+
+@using (Html.BeginForm("SalaryRaise", "StoredProc", FormMethod.Post))
+{
+    <div class="row mb-3">
+
+        <div class="col-md-4">
+            <div class="mb-3">
+                @* drop-down *@
+                <label class="form-label">Odjel</label>
+                @Html.DropDownList("departmentId", (SelectList)ViewBag.DepartmentID,
+                                "-- odaberi odjel --", new { @class = "form-control" })
+            </div>
+
+            <div class="mb-2">
+
+                <label class="form-label">Povisica (%)</label>
+                <input type="number" name="percentage" id="percentage"
+                       min="5" max="100" step="5"
+                       value=""
+                       class="form-control" placeholder="npr. 100" />
+            </div>
+
+            <div class="">
+                <button type="submit" class="btn btn-sm btn-danger">Snimi</button>
+            </div>
+        </div>
+    </div>
+}
+
+<div style="margin-top: 15px;">
+    @Html.ActionLink("Nazad", "Index", null, new { @class = "btn btn-sm btn-secondary" })
+
+</div>

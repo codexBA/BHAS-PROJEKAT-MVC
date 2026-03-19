@@ -1,0 +1,46 @@
+﻿@model List<BHAS.Models.DepartmentSummaryViewModel>
+
+@{
+    ViewBag.Title = "Sumarna statistika odjela";
+}
+
+<h2>Sumarna statistika odjela</h2>
+
+<table class="table table-bordered table-hover table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Odjel</th>
+            <th>Šifra</th>
+            <th>Budžet</th>
+            <th>Menadžer</th>
+            <th>Broj zaposlenih</th>
+            <th>Prosječna plata</th>
+            <th>Plate - ukupno</th>
+            <th>Ukupno projekata</th>
+            <th>Aktivnih projekata</th>
+            <th>Ukupni budžet projekata</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.DepartmentName</td>
+                <td>@item.DepartmentCode</td>
+                <td>@item.Budget</td>
+                <td>@item.ManagerFullName</td>
+                <td>@item.EmployeeCount</td>
+                <td>@item.AverageSalary</td>
+                <td>@item.TotalSalaryBill</td>
+                <td>@item.TotalProjectCount</td>
+                <td>@item.ActiveProjectCount</td>
+                <td>@item.TotalProjectBudget</td>
+            </tr>
+        }
+    </tbody>
+</table>
+<div style="margin-top: 15px;">
+    @Html.ActionLink("Nazad", "Index", null, new { @class = "btn btn-sm btn-secondary" })
+
+</div>
