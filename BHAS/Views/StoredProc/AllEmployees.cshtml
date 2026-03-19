@@ -9,37 +9,4 @@
     @Html.ActionLink("Nazad", "Index", null, new { @class = "btn btn-sm btn-secondary" })
 </div>
 
-<table class="table table-bordered table-hover table-striped">
-    <thead class="table-dark">
-        <tr>
-            <th>Ime</th>
-            <th>Prezime</th>
-            <th>JMBG</th>
-            <th>Pozicija</th>
-            <th>Email</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var emp in Model)
-        {
-            <tr>
-                <td>@emp.FirstName</td>
-                <td>@emp.LastName</td>
-                <td>@emp.JMBG</td>
-                <td>@emp.Position</td>
-                <td>@emp.Email</td>
-                <td>
-                    @Html.ActionLink("Detalji", "Details", "Employee",
-                                        new { id = emp.EmployeeID },
-                                        new { @class = "btn btn-sm btn-info" })
-
-                    @Html.ActionLink("Uredi", "Edit", "Employee",
-                                        new { id = emp.EmployeeID },
-                                        new { @class = "btn btn-sm btn-primary" })
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
-
+@Html.Partial("_EmployeesShared", Model)

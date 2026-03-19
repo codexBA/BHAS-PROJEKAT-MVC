@@ -196,6 +196,7 @@
     <Content Include="Views\Employee\Edit.cshtml" />
     <Content Include="Views\StoredProc\AllEmployees.cshtml" />
     <Content Include="Views\StoredProc\SearchEmployees.cshtml" />
+    <Content Include="Views\Shared\_EmployeesShared.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
