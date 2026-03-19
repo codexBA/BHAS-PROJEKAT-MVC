@@ -1,10 +1,10 @@
 ﻿@model BHAS.DbFirst.Employee
 
 @{
-    ViewBag.Title = "Novi zaposleni";
+    ViewBag.Title = "Uredi zaposlenika";
 }
 
-<h2>Novi zaposlenik</h2>
+<h2>Uredi zaposlenika</h2>
 
 @using (Html.BeginForm())
 {
@@ -13,7 +13,9 @@
     <div class="form-horizontal" style="max-width: 600px;">
 
         @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-
+        @Html.HiddenFor(m=>m.EmployeeID) @* skrivena kontrola koja sadrzi ID zaposlenika *@
+        @Html.HiddenFor(m=>m.CreatedDate)
+        
         <div class="form-group mb-3">
             @Html.LabelFor(m => m.FirstName, "Ime", new { @class = "control-label" })
             @Html.EditorFor(m => m.FirstName,
@@ -62,16 +64,12 @@
         </div>
 
         <div class="form-group mb-3">
-            @Html.LabelFor(m => m.HireDate, "Datum zaposlenja",
-                 new { @class = "control-label" })
-            @Html.EditorFor(m => m.HireDate,
+            @Html.LabelFor(m => m.HireDate, "Datum zaposlenja", new { @class = "control-label" })
+            @Html.TextBoxFor(m => m.HireDate, "{0:yyyy-MM-dd}",
                  new
-                 {
-                     htmlAttributes = new
-                     {
+                 {  
                          @class = "form-control",
                          type = "date"
-                     }
                  })
             @Html.ValidationMessageFor(m => m.HireDate, "", new { @class = "text-danger" })
 
@@ -84,18 +82,6 @@
             @Html.DropDownList("DepartmentID", null, "-- odaberi odjel --", new { @class = "form-control" })
 
             @Html.ValidationMessageFor(m => m.DepartmentID, "", new { @class = "text-danger" })
-
-            @*   <br />
-                <br />
-
-                <label class="control-label" for="DepartmentID">Odjel</label>
-
-                <select class="form-control" name="DepartmentID" id="DepartmentID">
-                    <option value="">-- odaberi odjel --</option>
-                    <option value="1"> Ministarstvo finansija </option>
-                    <option value="4"> Agencija za statistiku </option>
-                </select>
-            *@
 
         </div>
     </div>

@@ -13,7 +13,7 @@ namespace BHAS.Controllers
         public ActionResult Index()
         {
             using (var db = new StateStatisticsDBEntities())
-            { 
+            {
                 return View(db.Employees.ToList());
             }
         }
@@ -34,19 +34,6 @@ namespace BHAS.Controllers
             }
         }
 
-        public ActionResult Create()
-        {
-            using (var db = new StateStatisticsDBEntities())
-            {
-                var departments = db.Departments
-                    .OrderBy(x => x.DepartmentName)
-                    .ToList();
-
-                ViewBag.DepartmentID = new SelectList(departments, "DepartmentID", "DepartmentName", null);
-            }
-            //
-            return View();
-        }
 
 
         /// <summary>
@@ -75,13 +62,77 @@ namespace BHAS.Controllers
         }
 
 
+        public ActionResult Edit(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var employee = db.Employees.Find(id);
+                if (employee == null)
+                    return HttpNotFound();
+
+                PopulateDepartmentSelect(db, employee.DepartmentID);
+                return View(employee);
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit(Employee model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    model.ModifiedDate = DateTime.Now;
+                    db.Entry(model).State = System.Data.Entity.EntityState.Modified;
+                    db.SaveChanges();
+                }
+                return RedirectToAction("Index"); // vraca na listu svih zaposlenh
+                //return RedirectToAction("Details", "Department", new { id = model.DepartmentID }); // vrati se na listu zaposlenih
+            }
+            //
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentSelect(db, model.DepartmentID);
+            }
+            // nije validan => vrati se na formu 
+            return View(model);
+        }
+
+        /// <summary>
+        /// Ova metoda dobavlja listu odjela i kreira 'Select' koji ce se koristiti u Views (u Create i Edit)
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="selectedDepartmentId"></param>
+        private void PopulateDepartmentSelect(StateStatisticsDBEntities db, int? selectedDepartmentId = null)
+        {
+            var departments = db.Departments
+                   .OrderBy(x => x.DepartmentName)
+                   .ToList();
+
+            ViewBag.DepartmentID = new SelectList(departments,
+                                                    "DepartmentID",
+                                                    "DepartmentName",
+                                                    selectedDepartmentId);
+        }
+
+        public ActionResult Create()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentSelect(db);
+            }
+            //
+            return View();
+        }
+
+
+
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Create(Employee model)
         {
-            //if (model.DepartmentID < 1)
-            //   ModelState.AddModelError("DepartmentID", "Odaberi odjel");
-
             if (ModelState.IsValid)
             {
                 // podaci su ispravni => snimi u bazu
@@ -103,8 +154,12 @@ namespace BHAS.Controllers
                         return View(model);
                     }
                 }
-
                 return RedirectToAction("Details", "Department", new { id = model.DepartmentID }); // vrati se na listu zaposlenih
+            }
+            //
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentSelect(db);
             }
             // nije validan => vrati se na formu 
             return View(model);
