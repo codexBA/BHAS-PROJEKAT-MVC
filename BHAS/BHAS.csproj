@@ -128,13 +128,18 @@
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="Controllers\DepartmentController.cs" />
+    <Compile Include="Controllers\EconomicDataController.cs" />
     <Compile Include="Controllers\EmployeeController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\ProjectController.cs" />
+    <Compile Include="Controllers\RegionController.cs" />
+    <Compile Include="Controllers\ReportController.cs" />
     <Compile Include="Controllers\StoredProcController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\DepartmentSummaryViewModel.cs" />
+    <Compile Include="Models\RegionalStatsViewModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -200,6 +205,29 @@
     <Content Include="Views\Shared\_EmployeesShared.cshtml" />
     <Content Include="Views\StoredProc\SalaryRaise.cshtml" />
     <Content Include="Views\StoredProc\DepartmentSummary.cshtml" />
+    <Content Include="Views\StoredProc\ByDepartment.cshtml" />
+    <Content Include="Views\StoredProc\RegionalStats.cshtml" />
+    <Content Include="Views\StoredProc\UpdateProjectStatus.cshtml" />
+    <Content Include="Views\EconomicData\Create.cshtml" />
+    <Content Include="Views\EconomicData\Delete.cshtml" />
+    <Content Include="Views\EconomicData\Details.cshtml" />
+    <Content Include="Views\EconomicData\Edit.cshtml" />
+    <Content Include="Views\EconomicData\Index.cshtml" />
+    <Content Include="Views\Project\Create.cshtml" />
+    <Content Include="Views\Project\Delete.cshtml" />
+    <Content Include="Views\Project\Details.cshtml" />
+    <Content Include="Views\Project\Edit.cshtml" />
+    <Content Include="Views\Project\Index.cshtml" />
+    <Content Include="Views\Region\Create.cshtml" />
+    <Content Include="Views\Region\Delete.cshtml" />
+    <Content Include="Views\Region\Details.cshtml" />
+    <Content Include="Views\Region\Edit.cshtml" />
+    <Content Include="Views\Region\Index.cshtml" />
+    <Content Include="Views\Region\_EconomicDataTable.cshtml" />
+    <Content Include="Views\Report\Create.cshtml" />
+    <Content Include="Views\Report\Details.cshtml" />
+    <Content Include="Views\Report\Edit.cshtml" />
+    <Content Include="Views\Report\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

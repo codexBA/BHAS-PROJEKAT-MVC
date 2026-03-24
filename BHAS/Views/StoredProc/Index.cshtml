@@ -34,6 +34,8 @@
                     <code>EXEC Stats.sp_GetEmployeesByDepartment @@DepartmentID</code><br />
                     Filter po odjelu (dropdown).
                 </p>
+                @Html.ActionLink("Otvori", "ByDepartment", null, new { @class = "btn btn-sm btn-primary" })
+
             </div>
         </div>
     </div>
@@ -83,6 +85,8 @@
                     <code>EXEC Stats.sp_GetRegionalStatsByYear @@Year</code><br />
                     GDPPerCapita = GDP / Population računato u SQL-u.
                 </p>
+                @Html.ActionLink("Otvori", "RegionalStats", null, new { @class = "btn btn-sm btn-primary" })
+
             </div>
         </div>
     </div>
@@ -116,6 +120,8 @@
                     <code>EXEC Stats.sp_UpdateProjectStatus @@ProjectID, @@NewStatus</code><br />
                     UPDATE bez SELECT — vraća 1 ako je projekt pronađen.
                 </p>
+
+                @Html.ActionLink("Otvori", "UpdateProjectStatus", null, new { @class = "btn btn-sm btn-primary" })
             </div>
         </div>
     </div>

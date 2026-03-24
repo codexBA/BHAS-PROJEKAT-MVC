@@ -1,0 +1,67 @@
+@model BHAS.DbFirst.Region
+@{
+    ViewBag.Title = "Detalji regije";
+}
+
+<h2>Detalji regije</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="card" style="max-width: 600px;">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-4">Naziv regije</dt>
+            <dd class="col-sm-8">@Model.RegionName</dd>
+
+            <dt class="col-sm-4">Šifra</dt>
+            <dd class="col-sm-8">@Model.RegionCode</dd>
+
+            <dt class="col-sm-4">Stanovništvo</dt>
+            <dd class="col-sm-8">@Model.Population.ToString("N0")</dd>
+
+            <dt class="col-sm-4">Površina (km²)</dt>
+            <dd class="col-sm-8">@Model.Area.ToString("N2")</dd>
+
+            <dt class="col-sm-4">Kreirano</dt>
+            <dd class="col-sm-8">@(Model.CreatedDate.HasValue ? Model.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm") : "-")</dd>
+        </dl>
+    </div>
+</div>
+
+<div style="margin-top: 15px;">
+    @Html.ActionLink("Dodaj ekonomske podatke", "Create", "EconomicData", new { regionId = Model.RegionID }, new { @class = "btn btn-success" })
+    @Html.ActionLink("Uredi", "Edit", new { id = Model.RegionID }, new { @class = "btn btn-warning" })
+    @Html.ActionLink("Nazad na listu", "Index", null, new { @class = "btn btn-secondary" })
+</div>
+
+<hr />
+<h4>Ekonomski podaci</h4>
+
+<button id="btnLoadEcoData" class="btn btn-primary mb-3" type="button"
+        data-region-id="@Model.RegionID">
+    Učitaj ekonomske podatke
+</button>
+
+<div id="ecoDataHost"></div>
+
+@section scripts {
+    <script>
+        $(function () {
+            $("#btnLoadEcoData").on("click", function () {
+                var regionId = $(this).data("region-id");
+                var $host = $("#ecoDataHost");
+
+                $host.html("<div class='text-muted'>Učitavam...</div>");
+
+                $.get("/Region/EconomicDataPartial", { regionId: regionId })
+                    .done(function (html) { $host.html(html); })
+                    .fail(function (xhr) {
+                        $host.html("<div class='alert alert-danger'>Greška: " + xhr.status + "</div>");
+                    });
+            });
+        });
+    </script>
+}

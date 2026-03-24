@@ -1,0 +1,46 @@
+@model List<BHAS.DbFirst.Report>
+@{
+    ViewBag.Title = "Izvještaji";
+}
+
+<h2>Izvještaji</h2>
+<p>@Html.ActionLink("Kreiraj novi izvještaj", "Create", null, new { @class = "btn btn-primary" })</p>
+
+<table class="table table-bordered table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Naziv izvještaja</th>
+            <th>Odjel</th>
+            <th>Kreirao</th>
+            <th>Tip</th>
+            <th>Status</th>
+            <th>Datum</th>
+            <th>Akcije</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.ReportName</td>
+                <td>@(item.Department != null ? item.Department.DepartmentName : "-")</td>
+                <td>@(item.Employee != null ? item.Employee.LastName + " " + item.Employee.FirstName : "-")</td>
+                <td>@item.ReportType</td>
+                <td>
+                    @{
+                        var cls = item.Status == "Završen" ? "bg-success"
+                            : item.Status == "Arhiviran" ? "bg-secondary"
+                            : item.Status == "U obradi" ? "bg-warning text-dark"
+                            : "bg-info text-dark";
+                    }
+                    <span class="badge @cls">@item.Status</span>
+                </td>
+                <td>@(item.CreatedDate.HasValue ? item.CreatedDate.Value.ToString("dd.MM.yyyy") : "-")</td>
+                <td>
+                    @Html.ActionLink("Detalji", "Details", new { id = item.ReportID }, new { @class = "btn btn-sm btn-info" })
+                    @Html.ActionLink("Uredi", "Edit", new { id = item.ReportID }, new { @class = "btn btn-sm btn-warning" })
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

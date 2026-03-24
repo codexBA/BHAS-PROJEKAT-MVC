@@ -1,0 +1,50 @@
+@model BHAS.DbFirst.Report
+@{
+    ViewBag.Title = "Kreiraj izvještaj";
+}
+
+<h2>Kreiraj novi izvještaj</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    <div style="max-width: 600px;">
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.ReportName, "Naziv izvještaja")
+            @Html.EditorFor(m => m.ReportName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.ReportName, "", new { @class = "text-danger" })
+        </div>
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.DepartmentID, "Odjel")
+            @Html.DropDownList("DepartmentID", null, "-- odaberi odjel --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.DepartmentID, "", new { @class = "text-danger" })
+        </div>
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.CreatedBy, "Kreirao")
+            @Html.DropDownList("CreatedBy", null, "-- odaberi zaposlenika --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.CreatedBy, "", new { @class = "text-danger" })
+        </div>
+        <div class="form-group mb-3">
+            <label>Tip izvještaja</label>
+            @Html.DropDownList("ReportType", (SelectList)ViewBag.ReportTypeList, "-- odaberi tip --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.ReportType, "", new { @class = "text-danger" })
+        </div>
+        <div class="form-group mb-3">
+            <label>Status</label>
+            @Html.DropDownList("Status", (SelectList)ViewBag.StatusList, "-- odaberi status --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.Status, "", new { @class = "text-danger" })
+        </div>
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.Description, "Opis")
+            @Html.TextAreaFor(m => m.Description, new { @class = "form-control", rows = 3 })
+        </div>
+        <div class="mt-3">
+            <input type="submit" value="Kreiraj izvještaj" class="btn btn-primary" />
+            @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+        </div>
+    </div>
+}
+
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }

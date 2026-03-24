@@ -1,0 +1,35 @@
+@model List<BHAS.DbFirst.Region>
+@{
+    ViewBag.Title = "Regije";
+}
+
+<h2>Regije</h2>
+<p>@Html.ActionLink("Kreiraj novu regiju", "Create", null, new { @class = "btn btn-primary" })</p>
+
+<table class="table table-bordered table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Naziv regije</th>
+            <th>Šifra</th>
+            <th>Stanovništvo</th>
+            <th>Površina (km²)</th>
+            <th>Akcije</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.RegionName</td>
+                <td>@item.RegionCode</td>
+                <td>@item.Population.ToString("N0")</td>
+                <td>@item.Area.ToString("N2")</td>
+                <td>
+                    @Html.ActionLink("Detalji", "Details", new { id = item.RegionID }, new { @class = "btn btn-sm btn-info" })
+                    @Html.ActionLink("Uredi", "Edit", new { id = item.RegionID }, new { @class = "btn btn-sm btn-warning" })
+                    @Html.ActionLink("Obriši", "Delete", new { id = item.RegionID }, new { @class = "btn btn-sm btn-danger" })
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

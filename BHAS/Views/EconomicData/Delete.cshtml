@@ -1,0 +1,27 @@
+@model BHAS.DbFirst.EconomicData
+@{
+    ViewBag.Title = "Obriši ekonomske podatke";
+}
+
+<h2>Potvrda brisanja</h2>
+<div class="alert alert-warning"><strong>Upozorenje!</strong> Ova akcija je nepovratna.</div>
+
+<div class="card" style="max-width: 450px;">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-5">Regija</dt><dd class="col-sm-7">@(Model.Region?.RegionName ?? "-")</dd>
+            <dt class="col-sm-5">Godina</dt><dd class="col-sm-7">@Model.Year</dd>
+            <dt class="col-sm-5">BDP</dt><dd class="col-sm-7">@(Model.GDP.HasValue ? Model.GDP.Value.ToString("N2") : "-")</dd>
+            <dt class="col-sm-5">Prosječna plata</dt><dd class="col-sm-7">@(Model.AverageSalary.HasValue ? Model.AverageSalary.Value.ToString("N2") : "-")</dd>
+        </dl>
+    </div>
+</div>
+
+@using (Html.BeginForm("Delete", "EconomicData", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+    <div style="margin-top: 15px;">
+        <input type="submit" value="Da, obriši" class="btn btn-danger" />
+        @Html.ActionLink("Odustani", "Details", "Region", new { id = Model.RegionID }, new { @class = "btn btn-secondary" })
+    </div>
+}

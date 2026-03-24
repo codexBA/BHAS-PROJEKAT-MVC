@@ -1,0 +1,72 @@
+@model BHAS.DbFirst.Report
+@{
+    ViewBag.Title = "Detalji izvještaja";
+}
+
+<h2>Detalji izvještaja</h2>
+
+<div class="card" style="max-width: 700px;">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-4">Naziv izvještaja</dt>
+            <dd class="col-sm-8">@Model.ReportName</dd>
+
+            <dt class="col-sm-4">Odjel</dt>
+            <dd class="col-sm-8">@(Model.Department != null ? Model.Department.DepartmentName : "-")</dd>
+
+            <dt class="col-sm-4">Kreirao</dt>
+            <dd class="col-sm-8">@(Model.Employee != null ? Model.Employee.LastName + " " + Model.Employee.FirstName : "-")</dd>
+
+            <dt class="col-sm-4">Tip izvještaja</dt>
+            <dd class="col-sm-8">@Model.ReportType</dd>
+
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8">@Model.Status</dd>
+
+            <dt class="col-sm-4">Opis</dt>
+            <dd class="col-sm-8">@(string.IsNullOrEmpty(Model.Description) ? "-" : Model.Description)</dd>
+
+            <dt class="col-sm-4">Datum kreiranja</dt>
+            <dd class="col-sm-8">@(Model.CreatedDate.HasValue ? Model.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm") : "-")</dd>
+        </dl>
+    </div>
+</div>
+
+<div style="margin-top: 15px;">
+    @Html.ActionLink("Uredi", "Edit", new { id = Model.ReportID }, new { @class = "btn btn-warning" })
+    @Html.ActionLink("Nazad na listu", "Index", null, new { @class = "btn btn-secondary" })
+</div>
+
+<hr />
+<h4>Podaci izvještaja (@Model.ReportDatas.Count zapisa)</h4>
+
+@if (!Model.ReportDatas.Any())
+{
+    <div class="alert alert-info">Nema podataka u ovom izvještaju.</div>
+}
+else
+{
+    <table class="table table-bordered table-striped table-sm">
+        <thead class="table-secondary">
+            <tr>
+                <th>Tip podatka</th>
+                <th>Vrijednost (broj)</th>
+                <th>Vrijednost (tekst)</th>
+                <th>Regija</th>
+                <th>Godina</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rd in Model.ReportDatas.OrderBy(x => x.Year).ThenBy(x => x.DataType))
+            {
+                <tr>
+                    <td>@rd.DataType</td>
+                    <td>@(rd.Value.HasValue ? rd.Value.Value.ToString("N2") : "-")</td>
+                    <td>@(string.IsNullOrEmpty(rd.TextValue) ? "-" : rd.TextValue)</td>
+                    <td>@(rd.Region != null ? rd.Region.RegionName : "-")</td>
+                    <td>@(rd.Year.HasValue ? rd.Year.Value.ToString() : "-")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

@@ -1,0 +1,58 @@
+@model List<BHAS.DbFirst.EconomicData>
+@{
+    ViewBag.Title = "Ekonomski podaci";
+}
+
+<h2>Ekonomski podaci</h2>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        @using (Html.BeginForm("Index", "EconomicData", FormMethod.Get))
+        {
+            <div class="input-group">
+                @Html.DropDownList("regionId", (SelectList)ViewBag.RegionID, "-- sve regije --", new { @class = "form-control" })
+                <button type="submit" class="btn btn-outline-secondary">Filtriraj</button>
+            </div>
+        }
+    </div>
+    <div class="col-md-4">
+        @Html.ActionLink("Dodaj novi unos", "Create", null, new { @class = "btn btn-primary" })
+    </div>
+</div>
+
+@if (ViewBag.FilterRegion != null)
+{
+    <div class="alert alert-info">Filtrirano po regiji: <strong>@ViewBag.FilterRegion</strong></div>
+}
+
+<table class="table table-bordered table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Regija</th>
+            <th>Godina</th>
+            <th>BDP (mil.)</th>
+            <th>Nezaposlenost (%)</th>
+            <th>Prosječna plata</th>
+            <th>Inflacija (%)</th>
+            <th>Akcije</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@(item.Region != null ? item.Region.RegionName : "-")</td>
+                <td>@item.Year</td>
+                <td>@(item.GDP.HasValue ? item.GDP.Value.ToString("N2") : "-")</td>
+                <td>@(item.UnemploymentRate.HasValue ? item.UnemploymentRate.Value.ToString("N2") + "%" : "-")</td>
+                <td>@(item.AverageSalary.HasValue ? item.AverageSalary.Value.ToString("N2") : "-")</td>
+                <td>@(item.InflationRate.HasValue ? item.InflationRate.Value.ToString("N2") + "%" : "-")</td>
+                <td>
+                    @Html.ActionLink("Detalji", "Details", new { id = item.DataID }, new { @class = "btn btn-sm btn-info" })
+                    @Html.ActionLink("Uredi", "Edit", new { id = item.DataID }, new { @class = "btn btn-sm btn-warning" })
+                    @Html.ActionLink("Obriši", "Delete", new { id = item.DataID }, new { @class = "btn btn-sm btn-danger" })
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

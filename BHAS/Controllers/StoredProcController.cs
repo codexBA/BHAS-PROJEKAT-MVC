@@ -92,13 +92,62 @@ namespace BHAS.Controllers
         }
 
 
+        public ActionResult RegionalStats(int? year)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+
+                var years = db.EconomicDatas
+                              .Select(x => x.Year)
+                              .Distinct()
+                              .OrderByDescending(y => y)
+                              .ToList();
+                ViewBag.Years = new SelectList(years);
+
+                if (!year.HasValue)
+                    return View((object)null);
+
+
+                ViewBag.SelectedYear = year.Value;
+                var p = new SqlParameter("@Year", year.Value);
+                var list = db.Database
+                             .SqlQuery<RegionalStatsViewModel>(
+                                 "EXEC Stats.sp_GetRegionalStatsByYear @Year",
+                                 p)
+                             .ToList();
+                return View(list);
+            }
+        }
+
+
         public ActionResult SalaryRaise()
         {
-            using(var db = new StateStatisticsDBEntities())
+            using (var db = new StateStatisticsDBEntities())
             {
                 PopulateDepartmentSelect(db);
                 return View();
 
+            }
+        }
+
+        public ActionResult ByDepartment(int? departmentId)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentSelect(db, departmentId);
+
+                if (!departmentId.HasValue)
+                    return View((object)null);
+
+                var p = new SqlParameter("@DepartmentID", departmentId.Value);
+                var list = db.Database
+                             .SqlQuery<Employee>(
+                                 "EXEC Stats.sp_GetEmployeesByDepartment @DepartmentID",
+                                 p)
+                             .ToList();
+
+                ViewBag.FilterDepartment = db.Departments.Find(departmentId.Value)?.DepartmentName;
+                return View(list);
             }
         }
 
@@ -111,13 +160,13 @@ namespace BHAS.Controllers
         [HttpPost]
         public ActionResult SalaryRaise(int departmentId, decimal percentage)
         {
-            using(var db = new StateStatisticsDBEntities())
+            using (var db = new StateStatisticsDBEntities())
             {
                 var p1 = new SqlParameter("@DepartmentID", departmentId);
                 var p2 = new SqlParameter("@PercentageIncrease", percentage);
 
                 var count = db.Database
-                    .ExecuteSqlCommand("[Stats].[sp_GiveSalaryRaise] @DepartmentID, @PercentageIncrease", 
+                    .ExecuteSqlCommand("[Stats].[sp_GiveSalaryRaise] @DepartmentID, @PercentageIncrease",
                     p1, p2);
                 //
                 ViewBag.RowsAffected = count;
@@ -131,6 +180,59 @@ namespace BHAS.Controllers
 
 
 
+        public ActionResult UpdateProjectStatus()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateProjectsSelectList(db, null);
+                PopulateStatusSelectList(null);
+                return View();
+            }
+        }
+
+        // POST: StoredProc/UpdateProjectStatus
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UpdateProjectStatus(int projectId, string newStatus)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var p1 = new SqlParameter("@ProjectID", projectId);
+                var p2 = new SqlParameter("@NewStatus", newStatus);
+
+                int rows = db.Database.ExecuteSqlCommand(
+                    "EXEC Stats.sp_UpdateProjectStatus @ProjectID, @NewStatus",
+                    p1, p2);
+
+                ViewBag.RowsAffected = rows;
+                PopulateProjectsSelectList(db, projectId);
+                PopulateStatusSelectList(newStatus);
+                return View();
+            }
+        }
+
+
+        #region -- privatne metode --
+
+        private void PopulateProjectsSelectList(StateStatisticsDBEntities db, int? selectedId)
+        {
+            var projects = db.Projects.OrderBy(x => x.ProjectName).ToList();
+            ViewBag.ProjectID = new SelectList(projects, "ProjectID", "ProjectName", selectedId);
+        }
+
+        private void PopulateStatusSelectList(string selectedStatus)
+        {
+            var statuses = new[]
+            {
+                new { Value = "Planned",    Text = "Planiran" },
+                new { Value = "InProgress", Text = "U toku" },
+                new { Value = "Completed",  Text = "Završen" },
+                new { Value = "Cancelled",  Text = "Otkazan" }
+            };
+            ViewBag.StatusList = new SelectList(statuses, "Value", "Text", selectedStatus);
+        }
+
+
         private void PopulateDepartmentSelect(StateStatisticsDBEntities db, int? selectedDepartmentId = null)
         {
             var departments = db.Departments
@@ -142,5 +244,7 @@ namespace BHAS.Controllers
                                                     "DepartmentName",
                                                     selectedDepartmentId);
         }
+
+        #endregion -- privatne metode --
     }
 }

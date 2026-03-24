@@ -1,0 +1,26 @@
+@model BHAS.DbFirst.Project
+@{
+    ViewBag.Title = "Obriši projekat";
+}
+
+<h2>Potvrda brisanja</h2>
+<div class="alert alert-warning"><strong>Upozorenje!</strong> Ova akcija je nepovratna.</div>
+
+<div class="card" style="max-width: 500px;">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-4">Naziv</dt><dd class="col-sm-8">@Model.ProjectName</dd>
+            <dt class="col-sm-4">Odjel</dt><dd class="col-sm-8">@(Model.Department?.DepartmentName ?? "-")</dd>
+            <dt class="col-sm-4">Status</dt><dd class="col-sm-8">@Model.Status</dd>
+        </dl>
+    </div>
+</div>
+
+@using (Html.BeginForm("Delete", "Project", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+    <div style="margin-top: 15px;">
+        <input type="submit" value="Da, obriši" class="btn btn-danger" />
+        @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+    </div>
+}

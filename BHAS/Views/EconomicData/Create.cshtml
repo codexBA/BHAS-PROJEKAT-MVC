@@ -1,0 +1,51 @@
+@model BHAS.DbFirst.EconomicData
+@{
+    ViewBag.Title = "Dodaj ekonomske podatke";
+}
+
+<h2>Dodaj ekonomske podatke</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    <div style="max-width: 500px;">
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <div class="form-group mb-3">
+            <label>Regija</label>
+            @Html.DropDownList("RegionID", null, "-- odaberi regiju --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.RegionID, "", new { @class = "text-danger" })
+        </div>
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.Year, "Godina")
+            @Html.EditorFor(m => m.Year, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.Year, "", new { @class = "text-danger" })
+        </div>
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.GDP, "BDP (milioni)")
+            @Html.EditorFor(m => m.GDP, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.GDP, "", new { @class = "text-danger" })
+        </div>
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.UnemploymentRate, "Stopa nezaposlenosti (%)")
+            @Html.EditorFor(m => m.UnemploymentRate, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.UnemploymentRate, "", new { @class = "text-danger" })
+        </div>
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.AverageSalary, "Prosječna plata")
+            @Html.EditorFor(m => m.AverageSalary, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.AverageSalary, "", new { @class = "text-danger" })
+        </div>
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.InflationRate, "Stopa inflacije (%)")
+            @Html.EditorFor(m => m.InflationRate, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.InflationRate, "", new { @class = "text-danger" })
+        </div>
+        <div class="mt-3">
+            <input type="submit" value="Sačuvaj" class="btn btn-primary" />
+            @Html.ActionLink("Odustani", "Index", "Region", null, new { @class = "btn btn-secondary" })
+        </div>
+    </div>
+}
+
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }

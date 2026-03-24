@@ -1,0 +1,42 @@
+@model BHAS.DbFirst.EconomicData
+@{
+    ViewBag.Title = "Detalji ekonomskih podataka";
+}
+
+<h2>Ekonomski podaci – detalji</h2>
+
+<div class="card" style="max-width: 550px;">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-5">Regija</dt>
+            <dd class="col-sm-7">@(Model.Region != null ? Model.Region.RegionName : "-")</dd>
+
+            <dt class="col-sm-5">Godina</dt>
+            <dd class="col-sm-7">@Model.Year</dd>
+
+            <dt class="col-sm-5">BDP (mil.)</dt>
+            <dd class="col-sm-7">@(Model.GDP.HasValue ? Model.GDP.Value.ToString("N2") : "-")</dd>
+
+            <dt class="col-sm-5">Stopa nezaposlenosti (%)</dt>
+            <dd class="col-sm-7">@(Model.UnemploymentRate.HasValue ? Model.UnemploymentRate.Value.ToString("N2") + "%" : "-")</dd>
+
+            <dt class="col-sm-5">Prosječna plata</dt>
+            <dd class="col-sm-7">@(Model.AverageSalary.HasValue ? Model.AverageSalary.Value.ToString("N2") : "-")</dd>
+
+            <dt class="col-sm-5">Stopa inflacije (%)</dt>
+            <dd class="col-sm-7">@(Model.InflationRate.HasValue ? Model.InflationRate.Value.ToString("N2") + "%" : "-")</dd>
+
+            <dt class="col-sm-5">Datum unosa</dt>
+            <dd class="col-sm-7">@(Model.RecordedDate.HasValue ? Model.RecordedDate.Value.ToString("dd.MM.yyyy") : "-")</dd>
+        </dl>
+    </div>
+</div>
+
+<div style="margin-top: 15px;">
+    @Html.ActionLink("Uredi", "Edit", new { id = Model.DataID }, new { @class = "btn btn-warning" })
+    @if (Model.Region != null)
+    {
+        @Html.ActionLink("Nazad na regiju", "Details", "Region", new { id = Model.RegionID }, new { @class = "btn btn-secondary" })
+    }
+    @Html.ActionLink("Svi ekonomski podaci", "Index", null, new { @class = "btn btn-outline-secondary" })
+</div>
