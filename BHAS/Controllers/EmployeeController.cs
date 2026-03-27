@@ -1,13 +1,13 @@
 ﻿using BHAS.DbFirst;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using System.Net;
 using System.Web.Mvc;
 
 namespace BHAS.Controllers
 {
-    public class EmployeeController : Controller
+    [Authorize]
+    public class EmployeeController : BaseController
     {
         // Ne koristi se trenutno
         public ActionResult Index()
@@ -42,6 +42,7 @@ namespace BHAS.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult Delete(int id)
         {
             using (var db = new StateStatisticsDBEntities())
@@ -62,6 +63,7 @@ namespace BHAS.Controllers
         }
 
 
+        [Authorize(Roles = "Admin,Editor,SuperAdmin")]
         public ActionResult Edit(int id)
         {
             using (var db = new StateStatisticsDBEntities())
@@ -70,12 +72,17 @@ namespace BHAS.Controllers
                 if (employee == null)
                     return HttpNotFound();
 
+                if (!CanEditDepartment(employee.DepartmentID))
+                    return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
+                        "Nemaš pristup zaposlenicima iz ovog odjela.");
+
                 PopulateDepartmentSelect(db, employee.DepartmentID);
                 return View(employee);
             }
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Editor,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult Edit(Employee model)
         {
@@ -83,6 +90,11 @@ namespace BHAS.Controllers
             {
                 using (var db = new StateStatisticsDBEntities())
                 {
+                    var existing = db.Employees.Find(model.EmployeeID);
+                    if (existing != null && !CanEditDepartment(existing.DepartmentID))
+                        return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
+                            "Nemaš pristup zaposlenicima iz ovog odjela.");
+
                     model.ModifiedDate = DateTime.Now;
                     db.Entry(model).State = System.Data.Entity.EntityState.Modified;
                     db.SaveChanges();
@@ -116,6 +128,7 @@ namespace BHAS.Controllers
                                                     selectedDepartmentId);
         }
 
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult Create()
         {
             using (var db = new StateStatisticsDBEntities())
@@ -130,6 +143,7 @@ namespace BHAS.Controllers
 
 
         [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult Create(Employee model)
         {

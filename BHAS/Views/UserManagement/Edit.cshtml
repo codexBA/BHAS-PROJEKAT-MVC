@@ -1,0 +1,43 @@
+﻿@model BHAS.Models.EditUserViewModel
+@{
+    ViewBag.Title = "Uredi korisnika";
+}
+
+<h2>Uredi korisnika</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.Id)
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                @Html.LabelFor(m => m.Email, new { @class = "form-label" })
+                <p class="form-control-plaintext">@Model.Email</p>
+            </div>
+            <div class="mb-3">
+                @Html.LabelFor(m => m.FullName, new { @class = "form-label" })
+                @Html.TextBoxFor(m => m.FullName, new { @class = "form-control" })
+                @Html.ValidationMessageFor(m => m.FullName, "", new { @class = "text-danger small" })
+            </div>
+            <div class="mb-3">
+                @Html.LabelFor(m => m.Role, new { @class = "form-label" })
+                @Html.DropDownList("Role", new SelectList((string[])ViewBag.Roles, Model.Role),
+                    new { @class = "form-select" })
+                @Html.ValidationMessageFor(m => m.Role, "", new { @class = "text-danger small" })
+            </div>
+            <div class="mb-3">
+                @Html.LabelFor(m => m.DepartmentID, new { @class = "form-label" })
+                @Html.DropDownList("DepartmentID",
+                    new SelectList((IEnumerable<BHAS.DbFirst.Department>)ViewBag.Departments,
+                        "DepartmentID", "DepartmentName", Model.DepartmentID),
+                    "-- bez odjela --", new { @class = "form-select" })
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-warning">Sačuvaj</button>
+    @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary ms-2" })
+}

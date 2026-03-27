@@ -1,0 +1,48 @@
+﻿@model BHAS.DbFirst.Department
+@{
+    ViewBag.Title = "Kreiraj odjel";
+}
+
+<h2>Kreiraj novi odjel</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal" style="max-width: 600px;">
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.DepartmentName, "Naziv odjela", new { @class = "control-label" })
+            @Html.EditorFor(m => m.DepartmentName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.DepartmentName, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.DepartmentCode, "Šifra odjela", new { @class = "control-label" })
+            @Html.EditorFor(m => m.DepartmentCode, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.DepartmentCode, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.Budget, "Budžet", new { @class = "control-label" })
+            @Html.EditorFor(m => m.Budget, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m => m.Budget, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group mb-3">
+            @Html.LabelFor(m => m.ManagerID, "Menadžer", new { @class = "control-label" })
+            @Html.DropDownList("ManagerID", null, "-- odaberi menadžera --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m => m.ManagerID, "", new { @class = "text-danger" })
+        </div>
+
+        <div class="form-group mt-3">
+            <input type="submit" value="Sačuvaj" class="btn btn-primary" />
+            @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+        </div>
+    </div>
+}
+
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}

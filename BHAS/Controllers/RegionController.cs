@@ -1,3 +1,4 @@
+using BHAS.Controllers;
 using BHAS.DbFirst;
 using System;
 using System.Data.Entity;
@@ -6,7 +7,8 @@ using System.Web.Mvc;
 
 namespace AS.MVCDemo.Controllers
 {
-    public class RegionController : Controller
+    [Authorize]
+    public class RegionController : BaseController
     {
         // GET: Region
         public ActionResult Index()
@@ -38,6 +40,7 @@ namespace AS.MVCDemo.Controllers
         }
 
         // GET: Region/Create
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult Create()
         {
             return View();
@@ -45,6 +48,7 @@ namespace AS.MVCDemo.Controllers
 
         // POST: Region/Create
         [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "RegionName,RegionCode,Population,Area")] Region model)
         {
@@ -63,6 +67,7 @@ namespace AS.MVCDemo.Controllers
         }
 
         // GET: Region/Edit/5
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult Edit(int id)
         {
             using (var db = new StateStatisticsDBEntities())
@@ -76,6 +81,7 @@ namespace AS.MVCDemo.Controllers
 
         // POST: Region/Edit/5
         [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "RegionID,RegionName,RegionCode,Population,Area")] Region model)
         {
@@ -93,6 +99,7 @@ namespace AS.MVCDemo.Controllers
         }
 
         // GET: Region/Delete/5
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult Delete(int id)
         {
             using (var db = new StateStatisticsDBEntities())
@@ -106,6 +113,7 @@ namespace AS.MVCDemo.Controllers
 
         // POST: Region/Delete/5
         [HttpPost, ActionName("Delete")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)
         {

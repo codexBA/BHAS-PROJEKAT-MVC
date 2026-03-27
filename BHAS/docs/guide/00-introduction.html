@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="bs">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Poglavlje 0 - Uvod u ASP.NET MVC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: Consolas, 'Courier New', monospace;
+        }
+
+        .concept-box {
+            background: #e8f4fd;
+            border-left: 4px solid #0d6efd;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .nav-chapter {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-chapter a {
+            text-decoration: none;
+            padding: 8px 12px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .nav-chapter a:hover {
+            background: #e9ecef;
+        }
+
+        .nav-chapter a.active {
+            font-weight: bold;
+            background: #0d6efd;
+            color: white;
+            border-radius: 4px;
+        }
+
+        .folder-tree {
+            font-family: Consolas, monospace;
+            line-height: 1.8;
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .folder-tree .folder {
+            color: #f1c40f;
+        }
+
+        .folder-tree .file {
+            color: #66d9ef;
+        }
+
+        .folder-tree .config {
+            color: #e6db74;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="nav-chapter">
+        <div class="container">
+            <a href="00-introduction.html" class="active">0 - Uvod</a>
+            <a href="01-layout-and-home.html">1 - Layout i Home</a>
+            <a href="02-department.html">2 - Department</a>
+            <a href="03-employee.html">3 - Employee</a>
+            <a href="04-project.html">4 - Project</a>
+            <a href="05-region.html">5 - Region</a>
+            <a href="06-economic-data.html">6 - EconomicData</a>
+            <a href="07-report.html">7 - Report</a>
+            <a href="08-stored-procedures.html">8 - Stored Procedure</a>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5">
+        <h1>Poglavlje 0: Uvod u ASP.NET MVC</h1>
+        <p class="lead">U ovom poglavlju upoznat ćete se s osnovnim konceptima ASP.NET MVC obrasca, strukturom projekta
+            i ključnim datotekama koje čine temelj svake MVC aplikacije.</p>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="mvc-pattern">Šta je MVC (Model-View-Controller)?</h2>
+
+        <p>MVC je arhitekturalni obrazac koji dijeli aplikaciju u tri glavne komponente:</p>
+
+        <div class="row text-center my-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-primary">
+                    <div class="card-body">
+                        <h4 class="card-title text-primary">Model</h4>
+                        <p class="card-text">Predstavlja podatke i poslovnu logiku. U našem projektu, modeli dolaze iz
+                            <strong>BHAS.DbFirst</strong> projekta (Entity Framework Database First pristup).</p>
+                        <p class="text-muted">Primjeri: Department, Employee, Project, Region</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-success">
+                    <div class="card-body">
+                        <h4 class="card-title text-success">View</h4>
+                        <p class="card-text">Odgovoran je za prikaz podataka korisniku. Koristi Razor sintaksu
+                            (<code>.cshtml</code> datoteke) za kombinovanje HTML-a i C# koda.</p>
+                        <p class="text-muted">Primjeri: Index.cshtml, Create.cshtml, Edit.cshtml</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-warning">
+                    <div class="card-body">
+                        <h4 class="card-title text-warning">Controller</h4>
+                        <p class="card-text">Prima korisničke zahtjeve (HTTP GET/POST), obrađuje ih, komunicira s
+                            modelom i odabire odgovarajući View za odgovor.</p>
+                        <p class="text-muted">Primjeri: HomeController, DepartmentController</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="concept-box">
+            <strong>Kako radi tok zahtjeva u MVC-u:</strong><br />
+            1. Korisnik otvara URL npr. <code>/Department/Details/5</code><br />
+            2. Routing sistem pronalazi <strong>DepartmentController</strong> i poziva akciju <strong>Details</strong> s
+            parametrom <strong>id = 5</strong><br />
+            3. Controller dohvaća podatke iz baze podataka (Model)<br />
+            4. Controller prosljeđuje podatke View-u<br />
+            5. View renderira HTML koji se šalje korisniku
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="prerequisites">Preduvjeti</h2>
+
+        <p>Prije nego počnete s ovim vodičem, potrebno je da imate:</p>
+        <ol>
+            <li><strong>Visual Studio</strong> (2019 ili noviji) s ASP.NET i web development radnim opterećenjem</li>
+            <li><strong>SQL Server</strong> sa kreiranom bazom podataka <code>StateStatisticsDB</code></li>
+            <li><strong>BHAS.DbFirst projekat</strong> koji je već gotov i sadrži:
+                <ul>
+                    <li>DbContext klasu <code>StateStatisticsDBEntities</code></li>
+                    <li>Sve entitetske klase (Department, Employee, Project, Region, EconomicData, Report, ReportData)
+                    </li>
+                </ul>
+            </li>
+            <li><strong>AS.MVCDemo projekat</strong> kreiran kao ASP.NET MVC 5 Web Application (.NET Framework 4.7.2) s
+                referencom na BHAS.DbFirst</li>
+        </ol>
+
+        <div class="warning-box">
+            <strong>Napomena:</strong> Ovaj vodič pretpostavlja da su baza podataka i BHAS.DbFirst projekat već potpuno
+            funkcionalni. Mi ćemo se fokusirati isključivo na kreiranje Controllers i Views u AS.MVCDemo projektu.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="project-structure">Struktura projekta</h2>
+
+        <p>ASP.NET MVC projekat ima standardiziranu strukturu foldera. Evo kako izgleda naš <strong>AS.MVCDemo</strong>
+            projekat:</p>
+
+        <div class="folder-tree">
+            <span class="folder">AS.MVCDemo/</span><br />
+            ├── <span class="folder">App_Start/</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="config">BundleConfig.cs</span> &nbsp;&nbsp;&nbsp;<em
+                style="color:#999;">← Konfiguriše CSS i JS bundlove</em><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="config">FilterConfig.cs</span> &nbsp;&nbsp;<em style="color:#999;">←
+                Globalni filteri (error handling)</em><br />
+            │&nbsp;&nbsp;&nbsp;└── <span class="config">RouteConfig.cs</span> &nbsp;&nbsp;<em style="color:#999;">←
+                Definicija URL ruta</em><br />
+            ├── <span class="folder">Content/</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="file">bootstrap.css</span> &nbsp;&nbsp;&nbsp;<em style="color:#999;">←
+                Bootstrap stilovi</em><br />
+            │&nbsp;&nbsp;&nbsp;└── <span class="file">Site.css</span>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em style="color:#999;">← Prilagođeni stilovi</em><br />
+            ├── <span class="folder">Controllers/</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em
+                style="color:#999;">← Svi controlleri idu ovdje</em><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="file">HomeController.cs</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="file">DepartmentController.cs</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="file">EmployeeController.cs</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="file">ProjectController.cs</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="file">RegionController.cs</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="file">EconomicDataController.cs</span><br />
+            │&nbsp;&nbsp;&nbsp;└── <span class="file">ReportController.cs</span><br />
+            ├── <span class="folder">Scripts/</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="file">jquery-3.7.0.js</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="file">bootstrap.bundle.js</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="file">jquery.validate.js</span><br />
+            │&nbsp;&nbsp;&nbsp;└── <span class="file">jquery.validate.unobtrusive.js</span><br />
+            ├── <span class="folder">Views/</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="folder">Shared/</span><br />
+            │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">_Layout.cshtml</span> &nbsp;<em
+                style="color:#999;">← Master layout stranica</em><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="folder">Home/</span><br />
+            │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">Index.cshtml</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="folder">Department/</span><br />
+            │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file">Index.cshtml</span><br />
+            │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file">Details.cshtml</span><br />
+            │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file">Create.cshtml</span><br />
+            │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file">Edit.cshtml</span><br />
+            │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file">Delete.cshtml</span><br />
+            │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">_EmployeesTable.cshtml</span> &nbsp;<em
+                style="color:#999;">← Partial view</em><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="folder">Employee/</span> &nbsp;<em style="color:#999;">← (isti CRUD
+                pattern)</em><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="folder">Project/</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="folder">Region/</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="folder">EconomicData/</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="folder">Report/</span><br />
+            │&nbsp;&nbsp;&nbsp;├── <span class="file">_ViewStart.cshtml</span> &nbsp;&nbsp;<em style="color:#999;">←
+                Postavlja default layout</em><br />
+            │&nbsp;&nbsp;&nbsp;└── <span class="config">Web.config</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em
+                style="color:#999;">← Razor konfiguracija</em><br />
+            ├── <span class="config">Global.asax</span> / <span class="config">Global.asax.cs</span> &nbsp;<em
+                style="color:#999;">← Ulazna tačka aplikacije</em><br />
+            ├── <span class="config">Web.config</span>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em
+                style="color:#999;">← Glavna konfiguracija</em><br />
+            └── <span class="config">packages.config</span>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em style="color:#999;">← NuGet
+                paketi</em><br />
+        </div>
+
+        <div class="concept-box">
+            <strong>Konvencija imenovanja:</strong> ASP.NET MVC koristi konvenciju umjesto konfiguracije. Ako kontroler
+            ima ime <code>DepartmentController</code>, MVC automatski traži view-ove u folderu
+            <code>Views/Department/</code>. Ovo je veoma važno pravilo!
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="key-files">Ključne datoteke</h2>
+
+        <h3>1. Global.asax.cs &mdash; Ulazna tačka aplikacije</h3>
+        <p>Ova datoteka se izvršava kada se aplikacija pokrene. Registruje sve potrebne konfiguracije:</p>
+
+        <pre><code>using System.Web.Mvc;
+using System.Web.Optimization;
+using System.Web.Routing;
+
+namespace AS.MVCDemo
+{
+    public class MvcApplication : System.Web.HttpApplication
+    {
+        protected void Application_Start()
+        {
+            AreaRegistration.RegisterAllAreas();
+            FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
+            RouteConfig.RegisterRoutes(RouteTable.Routes);
+            BundleConfig.RegisterBundles(BundleTable.Bundles);
+        }
+    }
+}</code></pre>
+
+        <p>Metoda <code>Application_Start()</code> se poziva jednom kada aplikacija startuje i registruje:</p>
+        <ul>
+            <li><strong>Areas</strong> &mdash; Regije za organizaciju velikih projekata</li>
+            <li><strong>Filters</strong> &mdash; Globalni filteri (npr. za obradu grešaka)</li>
+            <li><strong>Routes</strong> &mdash; URL routing pravila</li>
+            <li><strong>Bundles</strong> &mdash; Grupe CSS i JavaScript datoteka</li>
+        </ul>
+
+        <h3>2. RouteConfig.cs &mdash; Kako MVC razumije URL-ove</h3>
+        <p>Routing je mehanizam koji mapira URL adrese na controller akcije. Evo defaultne konfiguracije:</p>
+
+        <pre><code>using System.Web.Mvc;
+using System.Web.Routing;
+
+namespace AS.MVCDemo
+{
+    public class RouteConfig
+    {
+        public static void RegisterRoutes(RouteCollection routes)
+        {
+            routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
+
+            routes.MapRoute(
+                name: "Default",
+                url: "{controller}/{action}/{id}",
+                defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional }
+            );
+        }
+    }
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Kako routing radi:</strong><br /><br />
+            URL obrazac je <code>{controller}/{action}/{id}</code> gdje je:<br />
+            <ul class="mb-0">
+                <li><code>{controller}</code> &mdash; ime kontrolera (bez "Controller" sufiksa)</li>
+                <li><code>{action}</code> &mdash; ime akcije (metode u kontroleru)</li>
+                <li><code>{id}</code> &mdash; opcioni parametar</li>
+            </ul>
+            <br />
+            <table class="table table-sm table-bordered mb-0" style="background: white;">
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Controller</th>
+                        <th>Action</th>
+                        <th>id</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>/</code></td>
+                        <td>HomeController</td>
+                        <td>Index()</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td><code>/Department</code></td>
+                        <td>DepartmentController</td>
+                        <td>Index()</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td><code>/Department/Details/5</code></td>
+                        <td>DepartmentController</td>
+                        <td>Details(5)</td>
+                        <td>5</td>
+                    </tr>
+                    <tr>
+                        <td><code>/Employee/Edit/3</code></td>
+                        <td>EmployeeController</td>
+                        <td>Edit(3)</td>
+                        <td>3</td>
+                    </tr>
+                    <tr>
+                        <td><code>/Employee/Create</code></td>
+                        <td>EmployeeController</td>
+                        <td>Create()</td>
+                        <td>-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>3. BundleConfig.cs &mdash; Grupisanje CSS i JS datoteka</h3>
+        <p>Bundle-ovi grupišu više CSS ili JavaScript datoteka u jednu referencu, što poboljšava performanse:</p>
+
+        <pre><code>using System.Web.Optimization;
+
+namespace AS.MVCDemo
+{
+    public class BundleConfig
+    {
+        public static void RegisterBundles(BundleCollection bundles)
+        {
+            bundles.Add(new ScriptBundle("~/bundles/jquery").Include(
+                        "~/Scripts/jquery-{version}.js"));
+
+            bundles.Add(new ScriptBundle("~/bundles/jqueryval").Include(
+                        "~/Scripts/jquery.validate*"));
+
+            bundles.Add(new ScriptBundle("~/bundles/modernizr").Include(
+                        "~/Scripts/modernizr-*"));
+
+            bundles.Add(new Bundle("~/bundles/bootstrap").Include(
+                      "~/Scripts/bootstrap.js"));
+
+            bundles.Add(new StyleBundle("~/Content/css").Include(
+                      "~/Content/bootstrap.css",
+                      "~/Content/site.css"));
+        }
+    }
+}</code></pre>
+
+        <p>U View-ovima koristimo ove bundlove ovako:</p>
+        <ul>
+            <li><code>@Styles.Render("~/Content/css")</code> &mdash; učitava bootstrap.css i site.css</li>
+            <li><code>@Scripts.Render("~/bundles/jquery")</code> &mdash; učitava jQuery</li>
+            <li><code>@Scripts.Render("~/bundles/jqueryval")</code> &mdash; učitava validacijske skripte</li>
+        </ul>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="entity-models">Pregled entitetskih modela</h2>
+
+        <p>Svi modeli se nalaze u <strong>BHAS.DbFirst</strong> projektu. Evo pregleda svakog entiteta i njegovih
+            svojstava koja ćemo koristiti u kontrolerima i view-ovima:</p>
+
+        <h3>Department (Odjel)</h3>
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Svojstvo</th>
+                    <th>Tip</th>
+                    <th>Opis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>DepartmentID</td>
+                    <td>int</td>
+                    <td>Primarni ključ</td>
+                </tr>
+                <tr>
+                    <td>DepartmentName</td>
+                    <td>string</td>
+                    <td>Naziv odjela</td>
+                </tr>
+                <tr>
+                    <td>DepartmentCode</td>
+                    <td>string</td>
+                    <td>Šifra odjela</td>
+                </tr>
+                <tr>
+                    <td>Budget</td>
+                    <td>decimal</td>
+                    <td>Budžet</td>
+                </tr>
+                <tr>
+                    <td>ManagerID</td>
+                    <td>int?</td>
+                    <td>FK na Employee (menadžer)</td>
+                </tr>
+                <tr>
+                    <td>CreatedDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum kreiranja</td>
+                </tr>
+                <tr>
+                    <td>ModifiedDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum posljednje izmjene</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Navigacijska svojstva:</strong> <code>Employee</code> (menadžer), <code>Employees</code> (kolekcija
+            zaposlenika), <code>Projects</code>, <code>Reports</code></p>
+
+        <h3>Employee (Zaposlenik)</h3>
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Svojstvo</th>
+                    <th>Tip</th>
+                    <th>Opis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>EmployeeID</td>
+                    <td>int</td>
+                    <td>Primarni ključ</td>
+                </tr>
+                <tr>
+                    <td>FirstName</td>
+                    <td>string</td>
+                    <td>Ime</td>
+                </tr>
+                <tr>
+                    <td>LastName</td>
+                    <td>string</td>
+                    <td>Prezime</td>
+                </tr>
+                <tr>
+                    <td>JMBG</td>
+                    <td>string</td>
+                    <td>Matični broj</td>
+                </tr>
+                <tr>
+                    <td>DepartmentID</td>
+                    <td>int</td>
+                    <td>FK na Department</td>
+                </tr>
+                <tr>
+                    <td>Position</td>
+                    <td>string</td>
+                    <td>Pozicija</td>
+                </tr>
+                <tr>
+                    <td>Salary</td>
+                    <td>decimal</td>
+                    <td>Plata</td>
+                </tr>
+                <tr>
+                    <td>HireDate</td>
+                    <td>DateTime</td>
+                    <td>Datum zaposlenja</td>
+                </tr>
+                <tr>
+                    <td>Email</td>
+                    <td>string</td>
+                    <td>Email adresa</td>
+                </tr>
+                <tr>
+                    <td>CreatedDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum kreiranja</td>
+                </tr>
+                <tr>
+                    <td>ModifiedDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum izmjene</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Navigacijska svojstva:</strong> <code>Department</code></p>
+
+        <h3>Project (Projekat)</h3>
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Svojstvo</th>
+                    <th>Tip</th>
+                    <th>Opis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>ProjectID</td>
+                    <td>int</td>
+                    <td>Primarni ključ</td>
+                </tr>
+                <tr>
+                    <td>ProjectName</td>
+                    <td>string</td>
+                    <td>Naziv projekta</td>
+                </tr>
+                <tr>
+                    <td>DepartmentID</td>
+                    <td>int</td>
+                    <td>FK na Department</td>
+                </tr>
+                <tr>
+                    <td>Budget</td>
+                    <td>decimal</td>
+                    <td>Budžet</td>
+                </tr>
+                <tr>
+                    <td>StartDate</td>
+                    <td>DateTime</td>
+                    <td>Datum početka</td>
+                </tr>
+                <tr>
+                    <td>EndDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum završetka (opciono)</td>
+                </tr>
+                <tr>
+                    <td>Status</td>
+                    <td>string</td>
+                    <td>Status projekta</td>
+                </tr>
+                <tr>
+                    <td>Description</td>
+                    <td>string</td>
+                    <td>Opis</td>
+                </tr>
+                <tr>
+                    <td>CreatedDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum kreiranja</td>
+                </tr>
+                <tr>
+                    <td>ModifiedDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum izmjene</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Navigacijska svojstva:</strong> <code>Department</code></p>
+
+        <h3>Region (Regija)</h3>
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Svojstvo</th>
+                    <th>Tip</th>
+                    <th>Opis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>RegionID</td>
+                    <td>int</td>
+                    <td>Primarni ključ</td>
+                </tr>
+                <tr>
+                    <td>RegionName</td>
+                    <td>string</td>
+                    <td>Naziv regije</td>
+                </tr>
+                <tr>
+                    <td>RegionCode</td>
+                    <td>string</td>
+                    <td>Šifra regije</td>
+                </tr>
+                <tr>
+                    <td>Population</td>
+                    <td>int</td>
+                    <td>Broj stanovnika</td>
+                </tr>
+                <tr>
+                    <td>Area</td>
+                    <td>decimal</td>
+                    <td>Površina u km&sup2;</td>
+                </tr>
+                <tr>
+                    <td>CreatedDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum kreiranja</td>
+                </tr>
+                <tr>
+                    <td>ModifiedDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum izmjene</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Navigacijska svojstva:</strong> <code>EconomicDatas</code>, <code>ReportDatas</code></p>
+
+        <h3>EconomicData (Ekonomski podaci)</h3>
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Svojstvo</th>
+                    <th>Tip</th>
+                    <th>Opis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>DataID</td>
+                    <td>int</td>
+                    <td>Primarni ključ</td>
+                </tr>
+                <tr>
+                    <td>RegionID</td>
+                    <td>int</td>
+                    <td>FK na Region</td>
+                </tr>
+                <tr>
+                    <td>Year</td>
+                    <td>int</td>
+                    <td>Godina</td>
+                </tr>
+                <tr>
+                    <td>GDP</td>
+                    <td>decimal?</td>
+                    <td>BDP u milionima</td>
+                </tr>
+                <tr>
+                    <td>UnemploymentRate</td>
+                    <td>decimal?</td>
+                    <td>Stopa nezaposlenosti (%)</td>
+                </tr>
+                <tr>
+                    <td>AverageSalary</td>
+                    <td>decimal?</td>
+                    <td>Prosječna plata</td>
+                </tr>
+                <tr>
+                    <td>InflationRate</td>
+                    <td>decimal?</td>
+                    <td>Stopa inflacije (%)</td>
+                </tr>
+                <tr>
+                    <td>RecordedDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum unosa podataka</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Navigacijska svojstva:</strong> <code>Region</code></p>
+
+        <h3>Report (Izvještaj)</h3>
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Svojstvo</th>
+                    <th>Tip</th>
+                    <th>Opis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>ReportID</td>
+                    <td>int</td>
+                    <td>Primarni ključ</td>
+                </tr>
+                <tr>
+                    <td>ReportName</td>
+                    <td>string</td>
+                    <td>Naziv izvještaja</td>
+                </tr>
+                <tr>
+                    <td>DepartmentID</td>
+                    <td>int</td>
+                    <td>FK na Department</td>
+                </tr>
+                <tr>
+                    <td>CreatedBy</td>
+                    <td>int</td>
+                    <td>FK na Employee (kreator)</td>
+                </tr>
+                <tr>
+                    <td>CreatedDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum kreiranja</td>
+                </tr>
+                <tr>
+                    <td>Status</td>
+                    <td>string</td>
+                    <td>Status izvještaja</td>
+                </tr>
+                <tr>
+                    <td>ReportType</td>
+                    <td>string</td>
+                    <td>Tip izvještaja</td>
+                </tr>
+                <tr>
+                    <td>Description</td>
+                    <td>string</td>
+                    <td>Opis</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Navigacijska svojstva:</strong> <code>Department</code>, <code>Employee</code>,
+            <code>ReportDatas</code></p>
+
+        <h3>ReportData (Podaci izvještaja)</h3>
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Svojstvo</th>
+                    <th>Tip</th>
+                    <th>Opis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>ReportDataID</td>
+                    <td>int</td>
+                    <td>Primarni ključ</td>
+                </tr>
+                <tr>
+                    <td>ReportID</td>
+                    <td>int</td>
+                    <td>FK na Report</td>
+                </tr>
+                <tr>
+                    <td>DataType</td>
+                    <td>string</td>
+                    <td>Tip podatka</td>
+                </tr>
+                <tr>
+                    <td>Value</td>
+                    <td>decimal?</td>
+                    <td>Numerička vrijednost</td>
+                </tr>
+                <tr>
+                    <td>TextValue</td>
+                    <td>string</td>
+                    <td>Tekstualna vrijednost</td>
+                </tr>
+                <tr>
+                    <td>RegionID</td>
+                    <td>int?</td>
+                    <td>FK na Region (opciono)</td>
+                </tr>
+                <tr>
+                    <td>Year</td>
+                    <td>int?</td>
+                    <td>Godina</td>
+                </tr>
+                <tr>
+                    <td>CreatedDate</td>
+                    <td>DateTime?</td>
+                    <td>Datum kreiranja</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Navigacijska svojstva:</strong> <code>Region</code>, <code>Report</code></p>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="dbcontext">DbContext &mdash; StateStatisticsDBEntities</h2>
+
+        <p>Svi kontroleri koriste <code>StateStatisticsDBEntities</code> klasu za pristup bazi podataka. Ova klasa
+            nasljeđuje <code>DbContext</code> iz Entity Framework-a i izlaže sljedeće <code>DbSet</code> kolekcije:</p>
+
+        <pre><code>public virtual DbSet&lt;Department&gt; Departments { get; set; }
+public virtual DbSet&lt;Employee&gt; Employees { get; set; }
+public virtual DbSet&lt;Project&gt; Projects { get; set; }
+public virtual DbSet&lt;Region&gt; Regions { get; set; }
+public virtual DbSet&lt;EconomicData&gt; EconomicDatas { get; set; }
+public virtual DbSet&lt;Report&gt; Reports { get; set; }
+public virtual DbSet&lt;ReportData&gt; ReportDatas { get; set; }</code></pre>
+
+        <p>U kontrolerima ćemo ga koristiti ovako:</p>
+        <pre><code>using (var db = new StateStatisticsDBEntities())
+{
+    var departments = db.Departments.ToList();
+    return View(departments);
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>using statement:</strong> <code>using</code> osigurava da se DbContext pravilno zatvori i oslobode
+            resursi nakon što završimo s upitom. Ovo je važno za sprečavanje curenja memorije (memory leaks).
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="crud-overview">Pregled CRUD operacija</h2>
+
+        <p>Kroz ovaj vodič, za svaki entitet ćemo implementirati CRUD operacije. Evo pregleda:</p>
+
+        <table class="table table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>Operacija</th>
+                    <th>HTTP Metoda</th>
+                    <th>Controller Akcija</th>
+                    <th>Opis</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>C</strong>reate</td>
+                    <td>GET + POST</td>
+                    <td>Create()</td>
+                    <td>Prikazuje formu (GET) i sprema novi zapis (POST)</td>
+                </tr>
+                <tr>
+                    <td><strong>R</strong>ead</td>
+                    <td>GET</td>
+                    <td>Index() + Details(id)</td>
+                    <td>Lista svih zapisa ili detalji jednog</td>
+                </tr>
+                <tr>
+                    <td><strong>U</strong>pdate</td>
+                    <td>GET + POST</td>
+                    <td>Edit(id)</td>
+                    <td>Prikazuje formu s postojećim podacima (GET) i sprema izmjene (POST)</td>
+                </tr>
+                <tr>
+                    <td><strong>D</strong>elete</td>
+                    <td>GET + POST</td>
+                    <td>Delete(id) + DeleteConfirmed(id)</td>
+                    <td>Prikazuje potvrdu (GET) i briše zapis (POST)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="chapters">Plan poglavlja</h2>
+
+        <p>U nastavku ćemo graditi aplikaciju korak po korak kroz sljedeća poglavlja:</p>
+
+        <div class="list-group">
+            <a href="01-layout-and-home.html" class="list-group-item list-group-item-action">
+                <strong>Poglavlje 1:</strong> Layout stranica i HomeController &mdash; Kreiranje master layout stranice
+                s navigacijom i početne stranice
+            </a>
+            <a href="02-department.html" class="list-group-item list-group-item-action">
+                <strong>Poglavlje 2:</strong> DepartmentController &mdash; Kompletni CRUD + AJAX partial view za prikaz
+                zaposlenika odjela
+            </a>
+            <a href="03-employee.html" class="list-group-item list-group-item-action">
+                <strong>Poglavlje 3:</strong> EmployeeController &mdash; Kompletni CRUD s dropdown listom za odabir
+                odjela
+            </a>
+            <a href="04-project.html" class="list-group-item list-group-item-action">
+                <strong>Poglavlje 4:</strong> ProjectController &mdash; CRUD sa statičkim dropdown vrijednostima i badge
+                prikazom
+            </a>
+            <a href="05-region.html" class="list-group-item list-group-item-action">
+                <strong>Poglavlje 5:</strong> RegionController &mdash; CRUD + AJAX partial view za ekonomske podatke
+            </a>
+            <a href="06-economic-data.html" class="list-group-item list-group-item-action">
+                <strong>Poglavlje 6:</strong> EconomicDataController &mdash; CRUD s filterom po regiji i
+                cross-controller preusmjeravanjem
+            </a>
+            <a href="07-report.html" class="list-group-item list-group-item-action">
+                <strong>Poglavlje 7:</strong> ReportController &mdash; CRUD bez brisanja, višestruki dropdown-ovi i
+                prikaz child kolekcija
+            </a>
+        </div>
+
+        <hr />
+
+        <h2>Šta ste naučili u ovom poglavlju</h2>
+        <ul>
+            <li>MVC obrazac dijeli aplikaciju na <strong>Model</strong>, <strong>View</strong> i
+                <strong>Controller</strong></li>
+            <li>ASP.NET MVC koristi konvenciju imenovanja za povezivanje kontrolera s view-ovima</li>
+            <li>Routing mapira URL-ove na controller akcije koristeći obrazac <code>{controller}/{action}/{id}</code>
+            </li>
+            <li><code>Global.asax.cs</code> je ulazna tačka koja registruje sve konfiguracije</li>
+            <li><code>BundleConfig.cs</code> grupiše CSS i JS datoteke za optimizaciju</li>
+            <li>BHAS.DbFirst projekat pruža sve modele i DbContext za pristup bazi</li>
+        </ul>
+
+        <div class="d-flex justify-content-end mt-4 mb-5">
+            <a href="01-layout-and-home.html" class="btn btn-primary btn-lg">Sljedeće: Layout i Home &raquo;</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,3 +1,4 @@
+using BHAS.Controllers;
 using BHAS.DbFirst;
 using System;
 using System.Data.Entity;
@@ -6,7 +7,8 @@ using System.Web.Mvc;
 
 namespace AS.MVCDemo.Controllers
 {
-    public class EconomicDataController : Controller
+    [Authorize]
+    public class EconomicDataController : BaseController
     {
         // GET: EconomicData
         public ActionResult Index(int? regionId)
@@ -48,6 +50,7 @@ namespace AS.MVCDemo.Controllers
         }
 
         // GET: EconomicData/Create
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult Create(int? regionId)
         {
             using (var db = new StateStatisticsDBEntities())
@@ -64,6 +67,7 @@ namespace AS.MVCDemo.Controllers
 
         // POST: EconomicData/Create
         [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "RegionID,Year,GDP,UnemploymentRate,AverageSalary,InflationRate,RecordedDate")] EconomicData model)
         {
@@ -86,6 +90,7 @@ namespace AS.MVCDemo.Controllers
         }
 
         // GET: EconomicData/Edit/5
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult Edit(int id)
         {
             using (var db = new StateStatisticsDBEntities())
@@ -104,6 +109,7 @@ namespace AS.MVCDemo.Controllers
 
         // POST: EconomicData/Edit/5
         [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "DataID,RegionID,Year,GDP,UnemploymentRate,AverageSalary,InflationRate,RecordedDate")] EconomicData model)
         {
@@ -125,6 +131,7 @@ namespace AS.MVCDemo.Controllers
         }
 
         // GET: EconomicData/Delete/5
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult Delete(int id)
         {
             using (var db = new StateStatisticsDBEntities())
@@ -142,6 +149,7 @@ namespace AS.MVCDemo.Controllers
 
         // POST: EconomicData/Delete/5
         [HttpPost, ActionName("Delete")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)
         {

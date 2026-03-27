@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="bs">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Poglavlje 7 - ReportController</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: Consolas, 'Courier New', monospace;
+        }
+
+        .concept-box {
+            background: #e8f4fd;
+            border-left: 4px solid #0d6efd;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .step-box {
+            background: #d1e7dd;
+            border-left: 4px solid #198754;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .nav-chapter {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-chapter a {
+            text-decoration: none;
+            padding: 8px 12px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .nav-chapter a:hover {
+            background: #e9ecef;
+        }
+
+        .nav-chapter a.active {
+            font-weight: bold;
+            background: #0d6efd;
+            color: white;
+            border-radius: 4px;
+        }
+
+        .summary-card {
+            background: #f0f7ff;
+            border: 2px solid #0d6efd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="nav-chapter">
+        <div class="container">
+            <a href="00-introduction.html">0 - Uvod</a>
+            <a href="01-layout-and-home.html">1 - Layout i Home</a>
+            <a href="02-department.html">2 - Department</a>
+            <a href="03-employee.html">3 - Employee</a>
+            <a href="04-project.html">4 - Project</a>
+            <a href="05-region.html">5 - Region</a>
+            <a href="06-economic-data.html">6 - EconomicData</a>
+            <a href="07-report.html" class="active">7 - Report</a>
+            <a href="08-stored-procedures.html">8 - Stored Procedure</a>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5">
+        <h1>Poglavlje 7: ReportController</h1>
+        <p class="lead">U posljednjem poglavlju kreirat ćemo kontroler za izvještaje. Ovaj kontroler je poseban jer:
+            nema Delete akciju, koristi višestruke dropdown-e (odjel, zaposlenik, status, tip), i prikazuje child
+            kolekciju (ReportDatas) u Details View-u.</p>
+
+        <div class="alert alert-info">
+            <strong>Novi koncepti u ovom poglavlju:</strong>
+            <ul class="mb-0">
+                <li>CRUD bez Delete akcije (svjesna dizajn odluka)</li>
+                <li>Višestruke PopulateSelectList metode za različite dropdown-e</li>
+                <li>Kombinacija statičkih i dinamičkih dropdown-a</li>
+                <li>Nested Include za povezane entitete (ReportDatas &rarr; Region)</li>
+                <li>Prikaz child kolekcije u Details View-u</li>
+                <li>RedirectToAction na Details nakon Create</li>
+            </ul>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="controller">Korak 1: Kreiranje ReportController</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Controllers/ReportController.cs</code>
+        </div>
+
+        <pre><code>using BHAS.DbFirst;
+using System;
+using System.Data.Entity;
+using System.Linq;
+using System.Web.Mvc;
+
+namespace AS.MVCDemo.Controllers
+{
+    public class ReportController : Controller
+    {
+        private static readonly string[] StatusValues = { "Draft", "U obradi", "Završen", "Arhiviran" };
+        private static readonly string[] ReportTypeValues = { "Statistički", "Finansijski", "Analitički", "Operativni" };
+
+        // GET: Report
+        public ActionResult Index()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var reports = db.Reports
+                    .Include(x =&gt; x.Department)
+                    .Include(x =&gt; x.Employee)
+                    .OrderByDescending(x =&gt; x.CreatedDate)
+                    .ToList();
+                return View(reports);
+            }
+        }
+
+        // GET: Report/Details/5
+        public ActionResult Details(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var report = db.Reports
+                    .Include(x =&gt; x.Department)
+                    .Include(x =&gt; x.Employee)
+                    .Include(x =&gt; x.ReportDatas.Select(rd =&gt; rd.Region))
+                    .FirstOrDefault(x =&gt; x.ReportID == id);
+
+                if (report == null)
+                    return HttpNotFound();
+
+                return View(report);
+            }
+        }
+
+        // GET: Report/Create
+        public ActionResult Create()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, null);
+                PopulateEmployeesSelectList(db, null);
+                ViewBag.StatusList = new SelectList(StatusValues);
+                ViewBag.ReportTypeList = new SelectList(ReportTypeValues);
+                return View();
+            }
+        }
+
+        // POST: Report/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Create([Bind(Include = "ReportName,DepartmentID,CreatedBy,Status,ReportType,Description")] Report model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    model.CreatedDate = DateTime.Now;
+                    db.Reports.Add(model);
+                    db.SaveChanges();
+                    return RedirectToAction("Details", new { id = model.ReportID });
+                }
+            }
+
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, model.DepartmentID);
+                PopulateEmployeesSelectList(db, model.CreatedBy);
+                ViewBag.StatusList = new SelectList(StatusValues, model.Status);
+                ViewBag.ReportTypeList = new SelectList(ReportTypeValues, model.ReportType);
+            }
+            return View(model);
+        }
+
+        // GET: Report/Edit/5
+        public ActionResult Edit(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var report = db.Reports.Find(id);
+                if (report == null)
+                    return HttpNotFound();
+
+                PopulateDepartmentsSelectList(db, report.DepartmentID);
+                PopulateEmployeesSelectList(db, report.CreatedBy);
+                ViewBag.StatusList = new SelectList(StatusValues, report.Status);
+                ViewBag.ReportTypeList = new SelectList(ReportTypeValues, report.ReportType);
+                return View(report);
+            }
+        }
+
+        // POST: Report/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit([Bind(Include = "ReportID,ReportName,DepartmentID,CreatedBy,Status,ReportType,Description")] Report model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    db.Entry(model).State = EntityState.Modified;
+                    db.SaveChanges();
+                    return RedirectToAction("Details", new { id = model.ReportID });
+                }
+            }
+
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, model.DepartmentID);
+                PopulateEmployeesSelectList(db, model.CreatedBy);
+                ViewBag.StatusList = new SelectList(StatusValues, model.Status);
+                ViewBag.ReportTypeList = new SelectList(ReportTypeValues, model.ReportType);
+            }
+            return View(model);
+        }
+
+        private void PopulateDepartmentsSelectList(StateStatisticsDBEntities db, int? selectedId)
+        {
+            var departments = db.Departments.OrderBy(x =&gt; x.DepartmentName).ToList();
+            ViewBag.DepartmentID = new SelectList(departments, "DepartmentID", "DepartmentName", selectedId);
+        }
+
+        private void PopulateEmployeesSelectList(StateStatisticsDBEntities db, int? selectedId)
+        {
+            var employees = db.Employees
+                .OrderBy(x =&gt; x.LastName).ThenBy(x =&gt; x.FirstName)
+                .Select(x =&gt; new { x.EmployeeID, FullName = x.LastName + " " + x.FirstName })
+                .ToList();
+            ViewBag.CreatedBy = new SelectList(employees, "EmployeeID", "FullName", selectedId);
+        }
+    }
+}</code></pre>
+
+        <h3>Detaljno objašnjenje novih koncepata</h3>
+
+        <h4>1. Bez Delete akcije</h4>
+        <div class="concept-box">
+            ReportController <strong>nema Delete i DeleteConfirmed akcije</strong>. Ovo je svjesna dizajn odluka &mdash;
+            izvještaji su važni dokumenti i ne bi trebali biti brisani. U stvarnom projektu, umjesto brisanja biste
+            mogli implementirati "arhiviranje" (promjena statusa na "Arhiviran").<br /><br />
+            Ovo pokazuje da ne morate uvijek implementirati svih 5 CRUD akcija. Implementirajte samo ono što ima smisla
+            za vaš poslovni slučaj.
+        </div>
+
+        <h4>2. Višestruke PopulateSelectList metode</h4>
+        <div class="concept-box">
+            Ovaj kontroler ima <strong>dvije</strong> privatne metode za popunjavanje dropdown-a:
+            <ul>
+                <li><code>PopulateDepartmentsSelectList</code> &mdash; Za odabir odjela
+                    (<code>ViewBag.DepartmentID</code>)</li>
+                <li><code>PopulateEmployeesSelectList</code> &mdash; Za odabir kreatora (<code>ViewBag.CreatedBy</code>)
+                </li>
+            </ul>
+            Plus <strong>dva</strong> statička dropdown-a:
+            <ul>
+                <li><code>ViewBag.StatusList</code> &mdash; Status izvještaja (Draft, U obradi, Završen, Arhiviran)</li>
+                <li><code>ViewBag.ReportTypeList</code> &mdash; Tip izvještaja (Statistički, Finansijski, Analitički,
+                    Operativni)</li>
+            </ul>
+            Svaki od ova 4 dropdown-a mora biti popunjen u <strong>svim</strong> akcijama koje prikazuju formu (Create
+            GET, Create POST s greškom, Edit GET, Edit POST s greškom).
+        </div>
+
+        <h4>3. Nested Include</h4>
+        <div class="concept-box">
+            <code>.Include(x =&gt; x.ReportDatas.Select(rd =&gt; rd.Region))</code><br /><br />
+            Ovo je <strong>nested eager loading</strong>. Učitava ne samo <code>ReportDatas</code> kolekciju, nego i
+            <code>Region</code> objekat za svaki <code>ReportData</code>.<br /><br />
+            Bez ovoga, u Details View-u bismo mogli pristupiti <code>rd.Region</code> ali bi bio null (jer nije učitan
+            iz baze).
+        </div>
+
+        <h4>4. Redirect na Details nakon Create</h4>
+        <div class="concept-box">
+            <code>return RedirectToAction("Details", new { id = model.ReportID });</code><br /><br />
+            Za razliku od ostalih kontrolera koji preusmjeravaju na Index, ovaj preusmjerava na
+            <strong>Details</strong>. Ovo je korisno jer korisnik odmah vidi kreirani izvještaj s svim
+            detaljima.<br /><br />
+            <code>model.ReportID</code> je dostupan nakon <code>db.SaveChanges()</code> jer EF automatski popunjava ID
+            nakon insert-a.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 2: Index View (Lista izvještaja)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Report/Index.cshtml</code><br />
+            Kreirajte folder <code>Views/Report/</code>, zatim dodajte <code>Index.cshtml</code>.
+        </div>
+
+        <pre><code>@model List&lt;BHAS.DbFirst.Report&gt;
+@{
+    ViewBag.Title = "Izvještaji";
+}
+
+&lt;h2&gt;Izvještaji&lt;/h2&gt;
+&lt;p&gt;@Html.ActionLink("Kreiraj novi izvještaj", "Create", null, new { @class = "btn btn-primary" })&lt;/p&gt;
+
+&lt;table class="table table-bordered table-striped table-hover"&gt;
+    &lt;thead class="table-dark"&gt;
+        &lt;tr&gt;
+            &lt;th&gt;Naziv izvještaja&lt;/th&gt;
+            &lt;th&gt;Odjel&lt;/th&gt;
+            &lt;th&gt;Kreirao&lt;/th&gt;
+            &lt;th&gt;Tip&lt;/th&gt;
+            &lt;th&gt;Status&lt;/th&gt;
+            &lt;th&gt;Datum&lt;/th&gt;
+            &lt;th&gt;Akcije&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        @foreach (var item in Model)
+        {
+            &lt;tr&gt;
+                &lt;td&gt;@item.ReportName&lt;/td&gt;
+                &lt;td&gt;@(item.Department != null ? item.Department.DepartmentName : "-")&lt;/td&gt;
+                &lt;td&gt;@(item.Employee != null ? item.Employee.LastName + " " + item.Employee.FirstName : "-")&lt;/td&gt;
+                &lt;td&gt;@item.ReportType&lt;/td&gt;
+                &lt;td&gt;
+                    @{
+                        var cls = item.Status == "Završen" ? "bg-success"
+                            : item.Status == "Arhiviran" ? "bg-secondary"
+                            : item.Status == "U obradi" ? "bg-warning text-dark"
+                            : "bg-info text-dark";
+                    }
+                    &lt;span class="badge @cls"&gt;@item.Status&lt;/span&gt;
+                &lt;/td&gt;
+                &lt;td&gt;@(item.CreatedDate.HasValue ? item.CreatedDate.Value.ToString("dd.MM.yyyy") : "-")&lt;/td&gt;
+                &lt;td&gt;
+                    @Html.ActionLink("Detalji", "Details", new { id = item.ReportID }, new { @class = "btn btn-sm btn-info" })
+                    @Html.ActionLink("Uredi", "Edit", new { id = item.ReportID }, new { @class = "btn btn-sm btn-warning" })
+                &lt;/td&gt;
+            &lt;/tr&gt;
+        }
+    &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+        <div class="concept-box">
+            <strong>Uočite:</strong> U koloni Akcije <strong>nema linka "Obriši"</strong>. Ovo odgovara dizajn odluci da
+            izvještaji ne mogu biti brisani. Također, prikaz navigacijskog svojstva Employee koristi format:
+            <code>item.Employee.LastName + " " + item.Employee.FirstName</code>.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 3: Details View s child kolekcijom</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Report/Details.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Report
+@{
+    ViewBag.Title = "Detalji izvještaja";
+}
+
+&lt;h2&gt;Detalji izvještaja&lt;/h2&gt;
+
+&lt;div class="card" style="max-width: 700px;"&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row"&gt;
+            &lt;dt class="col-sm-4"&gt;Naziv izvještaja&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.ReportName&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Odjel&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(Model.Department != null ? Model.Department.DepartmentName : "-")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Kreirao&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(Model.Employee != null ? Model.Employee.LastName + " " + Model.Employee.FirstName : "-")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Tip izvještaja&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.ReportType&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Status&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.Status&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Opis&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(string.IsNullOrEmpty(Model.Description) ? "-" : Model.Description)&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Datum kreiranja&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(Model.CreatedDate.HasValue ? Model.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm") : "-")&lt;/dd&gt;
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div style="margin-top: 15px;"&gt;
+    @Html.ActionLink("Uredi", "Edit", new { id = Model.ReportID }, new { @class = "btn btn-warning" })
+    @Html.ActionLink("Nazad na listu", "Index", null, new { @class = "btn btn-secondary" })
+&lt;/div&gt;
+
+&lt;hr /&gt;
+&lt;h4&gt;Podaci izvještaja (@Model.ReportDatas.Count zapisa)&lt;/h4&gt;
+
+@if (!Model.ReportDatas.Any())
+{
+    &lt;div class="alert alert-info"&gt;Nema podataka u ovom izvještaju.&lt;/div&gt;
+}
+else
+{
+    &lt;table class="table table-bordered table-striped table-sm"&gt;
+        &lt;thead class="table-secondary"&gt;
+            &lt;tr&gt;
+                &lt;th&gt;Tip podatka&lt;/th&gt;
+                &lt;th&gt;Vrijednost (broj)&lt;/th&gt;
+                &lt;th&gt;Vrijednost (tekst)&lt;/th&gt;
+                &lt;th&gt;Regija&lt;/th&gt;
+                &lt;th&gt;Godina&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            @foreach (var rd in Model.ReportDatas.OrderBy(x =&gt; x.Year).ThenBy(x =&gt; x.DataType))
+            {
+                &lt;tr&gt;
+                    &lt;td&gt;@rd.DataType&lt;/td&gt;
+                    &lt;td&gt;@(rd.Value.HasValue ? rd.Value.Value.ToString("N2") : "-")&lt;/td&gt;
+                    &lt;td&gt;@(string.IsNullOrEmpty(rd.TextValue) ? "-" : rd.TextValue)&lt;/td&gt;
+                    &lt;td&gt;@(rd.Region != null ? rd.Region.RegionName : "-")&lt;/td&gt;
+                    &lt;td&gt;@(rd.Year.HasValue ? rd.Year.Value.ToString() : "-")&lt;/td&gt;
+                &lt;/tr&gt;
+            }
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Prikaz child kolekcije:</strong><br />
+            Ovo je ključni novi koncept &mdash; unutar Details View-a prikazujemo i <strong>listu povezanih
+                zapisa</strong> (ReportDatas).<br /><br />
+            <code>@Model.ReportDatas.Count</code> &mdash; Prikazuje broj zapisa u zaglavlju.<br />
+            <code>@foreach (var rd in Model.ReportDatas.OrderBy(x =&gt; x.Year).ThenBy(x =&gt; x.DataType))</code>
+            &mdash; Iterira kroz podatke izvještaja, sortirane po godini i tipu.<br /><br />
+            Ovo je moguće jer smo u kontroleru koristili:
+            <code>.Include(x =&gt; x.ReportDatas.Select(rd =&gt; rd.Region))</code><br />
+            Bez tog Include-a, <code>Model.ReportDatas</code> bi bila prazna kolekcija.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 4: Create View (s 4 dropdown-a)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Report/Create.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Report
+@{
+    ViewBag.Title = "Kreiraj izvještaj";
+}
+
+&lt;h2&gt;Kreiraj novi izvještaj&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="max-width: 600px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.ReportName, "Naziv izvještaja")
+            @Html.EditorFor(m =&gt; m.ReportName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.ReportName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.DepartmentID, "Odjel")
+            @Html.DropDownList("DepartmentID", null, "-- odaberi odjel --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.DepartmentID, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.CreatedBy, "Kreirao")
+            @Html.DropDownList("CreatedBy", null, "-- odaberi zaposlenika --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.CreatedBy, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            &lt;label&gt;Tip izvještaja&lt;/label&gt;
+            @Html.DropDownList("ReportType", (SelectList)ViewBag.ReportTypeList, "-- odaberi tip --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.ReportType, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            &lt;label&gt;Status&lt;/label&gt;
+            @Html.DropDownList("Status", (SelectList)ViewBag.StatusList, "-- odaberi status --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.Status, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Description, "Opis")
+            @Html.TextAreaFor(m =&gt; m.Description, new { @class = "form-control", rows = 3 })
+        &lt;/div&gt;
+        &lt;div class="mt-3"&gt;
+            &lt;input type="submit" value="Kreiraj izvještaj" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }</code></pre>
+
+        <div class="concept-box">
+            <strong>4 dropdown-a u jednoj formi:</strong><br />
+            Ova forma demonstrira kombinaciju:
+            <ul class="mb-0">
+                <li><strong>2 dinamička dropdown-a iz baze:</strong> DepartmentID i CreatedBy koriste <code>null</code>
+                    kao drugi parametar jer se ViewBag naziv poklapa s imenom DropDownList-a</li>
+                <li><strong>2 statička dropdown-a:</strong> ReportType i Status zahtijevaju eksplicitni cast
+                    <code>(SelectList)ViewBag.ReportTypeList</code> jer se ViewBag naziv razlikuje</li>
+            </ul>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 5: Edit View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Report/Edit.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Report
+@{
+    ViewBag.Title = "Uredi izvještaj";
+}
+
+&lt;h2&gt;Uredi izvještaj&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="max-width: 600px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        @Html.HiddenFor(m =&gt; m.ReportID)
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.ReportName, "Naziv izvještaja")
+            @Html.EditorFor(m =&gt; m.ReportName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.ReportName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.DepartmentID, "Odjel")
+            @Html.DropDownList("DepartmentID", null, "-- odaberi odjel --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.DepartmentID, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.CreatedBy, "Kreirao")
+            @Html.DropDownList("CreatedBy", null, "-- odaberi zaposlenika --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.CreatedBy, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            &lt;label&gt;Tip izvještaja&lt;/label&gt;
+            @Html.DropDownList("ReportType", (SelectList)ViewBag.ReportTypeList, "-- odaberi tip --", new { @class = "form-control" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            &lt;label&gt;Status&lt;/label&gt;
+            @Html.DropDownList("Status", (SelectList)ViewBag.StatusList, "-- odaberi status --", new { @class = "form-control" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Description, "Opis")
+            @Html.TextAreaFor(m =&gt; m.Description, new { @class = "form-control", rows = 3 })
+        &lt;/div&gt;
+        &lt;div class="mt-3"&gt;
+            &lt;input type="submit" value="Sačuvaj izmjene" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Details", new { id = Model.ReportID }, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }</code></pre>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Šta ste naučili u ovom poglavlju</h2>
+        <ul>
+            <li><strong>Parcijalni CRUD</strong> &mdash; Ne morate implementirati sve CRUD operacije; samo ono što
+                poslovni zahtjevi traže</li>
+            <li><strong>Višestruki dropdown-ovi</strong> &mdash; Kombinacija dinamičkih (iz baze) i statičkih (niz
+                stringova)</li>
+            <li><strong>Višestruke Populate metode</strong> &mdash; Svaka popunjava svoj ViewBag za odgovarajući
+                dropdown</li>
+            <li><strong>Nested Include</strong> &mdash;
+                <code>.Include(x =&gt; x.ReportDatas.Select(rd =&gt; rd.Region))</code></li>
+            <li><strong>Child kolekcija u View-u</strong> &mdash; Prikaz povezanih zapisa (ReportDatas) unutar Details
+                stranice</li>
+            <li><strong>Redirect na Details</strong> &mdash; Umjesto na Index, preusmjeravanje na Details nakon Create
+                za bolji UX</li>
+        </ul>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <div class="summary-card">
+            <h2>Čestitamo! Završili ste vodič.</h2>
+            <p>Sada znate kako:</p>
+            <ul>
+                <li>Kreirati ASP.NET MVC kontrolere s CRUD operacijama</li>
+                <li>Koristiti Entity Framework za pristup bazi podataka</li>
+                <li>Kreirati Razor View-ove s formama, tabelama i karticama</li>
+                <li>Koristiti HTML helpere (EditorFor, LabelFor, DropDownList, TextAreaFor, itd.)</li>
+                <li>Implementirati dropdown liste (dinamičke iz baze i statičke)</li>
+                <li>Kreirati partial view-ove za ponovnu upotrebu i AJAX pozive</li>
+                <li>Koristiti jQuery za asihrone AJAX zahtjeve</li>
+                <li>Raditi s navigacijskim svojstvima i eager loading-om</li>
+                <li>Upravljati navigacijom između kontrolera (cross-controller linkovi i redirect-i)</li>
+                <li>Filtrirati podatke s GET formama i opcionim parametrima</li>
+                <li>Koristiti TempData za poruke kroz preusmjeravanje</li>
+                <li>Zaštititi forme od CSRF napada s AntiForgeryToken</li>
+            </ul>
+
+            <h4>Pregledajte sva poglavlja:</h4>
+            <div class="list-group">
+                <a href="00-introduction.html" class="list-group-item list-group-item-action">Poglavlje 0: Uvod u
+                    ASP.NET MVC</a>
+                <a href="01-layout-and-home.html" class="list-group-item list-group-item-action">Poglavlje 1: Layout i
+                    HomeController</a>
+                <a href="02-department.html" class="list-group-item list-group-item-action">Poglavlje 2:
+                    DepartmentController (CRUD + AJAX Partial)</a>
+                <a href="03-employee.html" class="list-group-item list-group-item-action">Poglavlje 3:
+                    EmployeeController (CRUD + Dropdown)</a>
+                <a href="04-project.html" class="list-group-item list-group-item-action">Poglavlje 4: ProjectController
+                    (Statički Dropdown + Badge)</a>
+                <a href="05-region.html" class="list-group-item list-group-item-action">Poglavlje 5: RegionController
+                    (CRUD + Cross-Controller)</a>
+                <a href="06-economic-data.html" class="list-group-item list-group-item-action">Poglavlje 6:
+                    EconomicDataController (Filter + Redirect)</a>
+                <a href="07-report.html" class="list-group-item list-group-item-action">Poglavlje 7: ReportController
+                    (Multi-Dropdown + Child Data)</a>
+                <a href="08-stored-procedures.html" class="list-group-item list-group-item-action">Poglavlje 8: Stored
+                    Procedures (SqlQuery + ExecuteSqlCommand)</a>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4 mb-5">
+            <a href="06-economic-data.html" class="btn btn-outline-secondary btn-lg">&laquo; Prethodno: EconomicData</a>
+            <a href="08-stored-procedures.html" class="btn btn-primary btn-lg">Sljedeće: Stored Procedures &raquo;</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,55 @@
+﻿@using BHAS.Models
+@using Microsoft.AspNet.Identity
+
+@if (Request.IsAuthenticated)
+{
+    string fullName = "Korisnik";
+    string roleName = "User";
+    string roleColor = "secondary";
+
+    using (var db = new ApplicationDbContext())
+    {
+        var userId = HttpContext.Current.User.Identity.GetUserId();
+        var appUser = db.Users.Find(userId);
+        if (appUser != null)
+        {
+            fullName = appUser.FullName ?? appUser.Email;
+        }
+    }
+
+    if (User.IsInRole("SuperAdmin")) { roleName = "SuperAdmin"; roleColor = "danger"; }
+    else if (User.IsInRole("Admin")) { roleName = "Admin"; roleColor = "warning"; }
+    else if (User.IsInRole("Editor")) { roleName = "Editor"; roleColor = "primary"; }
+    else { roleName = "User"; roleColor = "secondary"; }
+
+    <li class="nav-item">
+        <span class="nav-link text-white">
+            @fullName
+            <span class="badge bg-@roleColor ms-1">@roleName</span>
+        </span>
+    </li>
+
+    if (User.IsInRole("SuperAdmin"))
+    {
+        <li class="nav-item">
+            @Html.ActionLink("Korisnici", "Index", "UserManagement",
+                new { area = "" }, new { @class = "nav-link" })
+        </li>
+    }
+
+    <li class="nav-item">
+        @using (Html.BeginForm("Logout", "Account", FormMethod.Post,
+            new { id = "logoutForm", @class = "d-inline" }))
+        {
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-link nav-link text-white p-0">Odjava</button>
+        }
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        @Html.ActionLink("Prijava", "Login", "Account",
+            new { area = "" }, new { @class = "nav-link" })
+    </li>
+}

@@ -1,12 +1,15 @@
+using BHAS.Controllers;
 using BHAS.DbFirst;
 using System;
 using System.Data.Entity;
 using System.Linq;
+using System.Net;
 using System.Web.Mvc;
 
 namespace AS.MVCDemo.Controllers
 {
-    public class ProjectController : Controller
+    [Authorize]
+    public class ProjectController : BaseController
     {
         private static readonly string[] StatusValues = { "Planiran", "Aktivan", "Završen", "Otkazan" };
 
@@ -40,6 +43,7 @@ namespace AS.MVCDemo.Controllers
         }
 
         // GET: Project/Create
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult Create()
         {
             using (var db = new StateStatisticsDBEntities())
@@ -52,6 +56,7 @@ namespace AS.MVCDemo.Controllers
 
         // POST: Project/Create
         [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "ProjectName,DepartmentID,Budget,StartDate,EndDate,Status,Description")] Project model)
         {
@@ -76,6 +81,7 @@ namespace AS.MVCDemo.Controllers
         }
 
         // GET: Project/Edit/5
+        [Authorize(Roles = "Admin,Editor,SuperAdmin")]
         public ActionResult Edit(int id)
         {
             using (var db = new StateStatisticsDBEntities())
@@ -83,6 +89,10 @@ namespace AS.MVCDemo.Controllers
                 var project = db.Projects.Find(id);
                 if (project == null)
                     return HttpNotFound();
+
+                if (!CanEditDepartment(project.DepartmentID))
+                    return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
+                        "Nemaš pristup projektima iz ovog odjela.");
 
                 PopulateDepartmentsSelectList(db, project.DepartmentID);
                 ViewBag.StatusList = new SelectList(StatusValues, project.Status);
@@ -92,6 +102,7 @@ namespace AS.MVCDemo.Controllers
 
         // POST: Project/Edit/5
         [HttpPost]
+        [Authorize(Roles = "Admin,Editor,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "ProjectID,ProjectName,DepartmentID,Budget,StartDate,EndDate,Status,Description")] Project model)
         {
@@ -99,6 +110,11 @@ namespace AS.MVCDemo.Controllers
             {
                 using (var db = new StateStatisticsDBEntities())
                 {
+                    var existing = db.Projects.Find(model.ProjectID);
+                    if (existing != null && !CanEditDepartment(existing.DepartmentID))
+                        return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
+                            "Nemaš pristup projektima iz ovog odjela.");
+
                     model.ModifiedDate = DateTime.Now;
                     db.Entry(model).State = EntityState.Modified;
                     db.SaveChanges();
@@ -115,6 +131,7 @@ namespace AS.MVCDemo.Controllers
         }
 
         // GET: Project/Delete/5
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult Delete(int id)
         {
             using (var db = new StateStatisticsDBEntities())
@@ -132,6 +149,7 @@ namespace AS.MVCDemo.Controllers
 
         // POST: Project/Delete/5
         [HttpPost, ActionName("Delete")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)
         {

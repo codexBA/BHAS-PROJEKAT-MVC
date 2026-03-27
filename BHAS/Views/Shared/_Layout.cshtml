@@ -26,6 +26,9 @@
                     <li>@Html.ActionLink("Izvještaji", "Index", "Report", new { area = "" }, new { @class = "nav-link" })</li>
                     <li>@Html.ActionLink("Stored Proc", "Index", "StoredProc", new { area = "" }, new { @class = "nav-link" })</li>
                 </ul>
+                <ul class="navbar-nav">
+                    @Html.Partial("_LoginPartial")
+                </ul>
             </div>
         </div>
     </nav>

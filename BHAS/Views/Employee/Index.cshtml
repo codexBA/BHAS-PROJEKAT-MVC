@@ -6,10 +6,13 @@
 <h2>Zaposlenici</h2>
 
 <div style="margin-top: 15px; margin-bottom: 15px;">
-    @Html.ActionLink("Kreiraj novog zaposlenika",
-                                        "Create",
-                                        "Employee",
-                                        null, new { @class = "btn btn-sm btn-danger" })
+    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+    {
+        @Html.ActionLink("Kreiraj novog zaposlenika",
+                                            "Create",
+                                            "Employee",
+                                            null, new { @class = "btn btn-sm btn-danger" })
+    }
 </div>
 
 @Html.Partial("_EmployeesShared", Model)

@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="bs">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Poglavlje 2 - DepartmentController</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: Consolas, 'Courier New', monospace;
+        }
+
+        .concept-box {
+            background: #e8f4fd;
+            border-left: 4px solid #0d6efd;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .step-box {
+            background: #d1e7dd;
+            border-left: 4px solid #198754;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .nav-chapter {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-chapter a {
+            text-decoration: none;
+            padding: 8px 12px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .nav-chapter a:hover {
+            background: #e9ecef;
+        }
+
+        .nav-chapter a.active {
+            font-weight: bold;
+            background: #0d6efd;
+            color: white;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="nav-chapter">
+        <div class="container">
+            <a href="00-introduction.html">0 - Uvod</a>
+            <a href="01-layout-and-home.html">1 - Layout i Home</a>
+            <a href="02-department.html" class="active">2 - Department</a>
+            <a href="03-employee.html">3 - Employee</a>
+            <a href="04-project.html">4 - Project</a>
+            <a href="05-region.html">5 - Region</a>
+            <a href="06-economic-data.html">6 - EconomicData</a>
+            <a href="07-report.html">7 - Report</a>
+            <a href="08-stored-procedures.html">8 - Stored Procedure</a>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5">
+        <h1>Poglavlje 2: DepartmentController</h1>
+        <p class="lead">U ovom poglavlju kreirat ćemo kompletni CRUD za upravljanje odjelima, uključujući AJAX
+            parcijalni view za prikaz zaposlenika odjela. Ovo je najdetaljnije poglavlje jer uvodi sve ključne koncepte
+            koje ćemo ponavljati u narednim poglavljima.</p>
+
+        <div class="alert alert-info">
+            <strong>Sadržaj poglavlja:</strong>
+            <a href="#controller">Controller</a> |
+            <a href="#index-view">Index View</a> |
+            <a href="#details-view">Details View</a> |
+            <a href="#create-view">Create View</a> |
+            <a href="#edit-view">Edit View</a> |
+            <a href="#delete-view">Delete View</a> |
+            <a href="#partial-view">Partial View + AJAX</a>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="controller">Korak 1: Kreiranje DepartmentController</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Controllers/DepartmentController.cs</code><br />
+            Desni klik na folder <code>Controllers</code> &rarr; Add &rarr; Controller &rarr; MVC 5 Controller - Empty
+            &rarr; ime: <code>DepartmentController</code>
+        </div>
+
+        <p>Ovaj kontroler sadrži sve CRUD akcije plus jednu akciju za AJAX učitavanje zaposlenika. Otkucajte kompletan
+            kod:</p>
+
+        <pre><code>using BHAS.DbFirst;
+using System;
+using System.Data.Entity;
+using System.Linq;
+using System.Web.Mvc;
+
+namespace AS.MVCDemo.Controllers
+{
+    public class DepartmentController : Controller
+    {
+        // GET: Department
+        public ActionResult Index()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var departments = db.Departments.ToList();
+                return View(departments);
+            }
+        }
+
+        // GET: Department/Details/5
+        public ActionResult Details(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var department = db.Departments
+                    .Include(x =&gt; x.Employees)
+                    .Include(x =&gt; x.Employee)
+                    .FirstOrDefault(x =&gt; x.DepartmentID == id);
+
+                if (department == null)
+                    return HttpNotFound();
+
+                return View(department);
+            }
+        }
+
+        // GET: Department/Create
+        public ActionResult Create()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateManagersSelectList(db, null);
+                return View();
+            }
+        }
+
+        // POST: Department/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Create([Bind(Include = "DepartmentName,DepartmentCode,Budget,ManagerID")] Department model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    model.CreatedDate = DateTime.Now;
+                    model.ModifiedDate = DateTime.Now;
+                    db.Departments.Add(model);
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
+            }
+
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateManagersSelectList(db, model.ManagerID);
+            }
+            return View(model);
+        }
+
+        // GET: Department/Edit/5
+        public ActionResult Edit(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var department = db.Departments.Find(id);
+                if (department == null)
+                    return HttpNotFound();
+
+                PopulateManagersSelectList(db, department.ManagerID);
+                return View(department);
+            }
+        }
+
+        // POST: Department/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit([Bind(Include = "DepartmentID,DepartmentName,DepartmentCode,Budget,ManagerID")] Department model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    model.ModifiedDate = DateTime.Now;
+                    db.Entry(model).State = EntityState.Modified;
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
+            }
+
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateManagersSelectList(db, model.ManagerID);
+            }
+            return View(model);
+        }
+
+        // GET: Department/Delete/5
+        public ActionResult Delete(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var department = db.Departments.Find(id);
+                if (department == null)
+                    return HttpNotFound();
+
+                return View(department);
+            }
+        }
+
+        // POST: Department/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public ActionResult DeleteConfirmed(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                try
+                {
+                    var department = db.Departments.Find(id);
+                    if (department == null)
+                        return HttpNotFound();
+
+                    db.Departments.Remove(department);
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
+                catch (Exception)
+                {
+                    TempData["Error"] = "Nije moguće obrisati odjel jer ima zaposlenih. Prvo premjestite ili obrišite zaposlene.";
+                    return RedirectToAction("Details", new { id });
+                }
+            }
+        }
+
+        // GET: Department/EmployeesPartial?departmentId=5
+        [HttpGet]
+        public ActionResult EmployeesPartial(int departmentId)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var employees = db.Employees
+                    .Where(x =&gt; x.DepartmentID == departmentId)
+                    .OrderBy(x =&gt; x.LastName)
+                    .ThenBy(x =&gt; x.FirstName)
+                    .ToList();
+
+                return PartialView("_EmployeesTable", employees);
+            }
+        }
+
+        private void PopulateManagersSelectList(StateStatisticsDBEntities db, int? selectedEmployeeId)
+        {
+            var employees = db.Employees
+                .OrderBy(x =&gt; x.LastName)
+                .ThenBy(x =&gt; x.FirstName)
+                .Select(x =&gt; new
+                {
+                    x.EmployeeID,
+                    FullName = x.LastName + " " + x.FirstName
+                })
+                .ToList();
+
+            ViewBag.ManagerID = new SelectList(employees, "EmployeeID", "FullName", selectedEmployeeId);
+        }
+    }
+}</code></pre>
+
+        <h3>Detaljno objašnjenje svake akcije</h3>
+
+        <h4>Index() &mdash; Prikaz svih odjela</h4>
+        <div class="concept-box">
+            <code>db.Departments.ToList()</code> dohvaća sve zapise iz tabele Departments.<br />
+            <code>return View(departments)</code> prosljeđuje listu odjela kao Model u View.<br />
+            View za ovu akciju se traži na lokaciji: <code>Views/Department/Index.cshtml</code>
+        </div>
+
+        <h4>Details(int id) &mdash; Prikaz detalja jednog odjela</h4>
+        <div class="concept-box">
+            <code>.Include(x =&gt; x.Employees)</code> koristi eager loading da zajedno s odjelom dohvati i sve
+            zaposlenike.<br />
+            <code>.Include(x =&gt; x.Employee)</code> dohvaća menadžera odjela (navigacijsko svojstvo
+            <code>Employee</code> predstavlja FK na menadžera).<br />
+            <code>FirstOrDefault(x =&gt; x.DepartmentID == id)</code> pronalazi odjel po ID-u.<br />
+            <code>HttpNotFound()</code> vraća HTTP 404 ako odjel ne postoji.
+        </div>
+
+        <h4>Create() GET i POST &mdash; Kreiranje novog odjela</h4>
+        <div class="concept-box">
+            <strong>GET</strong> akcija prikazuje praznu formu. Prije toga poziva
+            <code>PopulateManagersSelectList</code> da napuni dropdown listu menadžera.<br /><br />
+            <strong>POST</strong> akcija prima podatke iz forme:
+            <ul class="mb-0">
+                <li><code>[HttpPost]</code> &mdash; Ova akcija reagira samo na POST zahtjeve</li>
+                <li><code>[ValidateAntiForgeryToken]</code> &mdash; Štiti od CSRF napada (Cross-Site Request Forgery)
+                </li>
+                <li><code>[Bind(Include = "...")]</code> &mdash; Dozvoljava samo navedena svojstva da budu popunjena iz
+                    forme (sigurnosna mjera)</li>
+                <li><code>ModelState.IsValid</code> &mdash; Provjerava da li su svi validacijski uvjeti ispunjeni</li>
+                <li><code>db.Departments.Add(model)</code> &mdash; Dodaje novi zapis u DbSet</li>
+                <li><code>db.SaveChanges()</code> &mdash; Sprema promjene u bazu podataka</li>
+                <li><code>RedirectToAction("Index")</code> &mdash; Preusmjerava korisnika na listu odjela</li>
+            </ul>
+        </div>
+
+        <h4>Edit() GET i POST &mdash; Uređivanje odjela</h4>
+        <div class="concept-box">
+            Razlika od Create:<br />
+            <ul class="mb-0">
+                <li><code>db.Departments.Find(id)</code> &mdash; Pronalazi postojeći zapis</li>
+                <li>POST verzija Edit-a koristi <code>db.Entry(model).State = EntityState.Modified</code> umjesto
+                    <code>Add()</code></li>
+                <li>U <code>[Bind]</code> atributu, Edit uključuje i <code>DepartmentID</code> jer ažuriramo postojeći
+                    zapis</li>
+            </ul>
+        </div>
+
+        <h4>Delete() i DeleteConfirmed() &mdash; Brisanje odjela</h4>
+        <div class="concept-box">
+            <strong>Zašto dvije metode?</strong> Ne možemo imati dvije metode s istim imenom i istim parametrima.<br />
+            <code>[HttpPost, ActionName("Delete")]</code> govori MVC-u da se <code>DeleteConfirmed</code> metoda poziva
+            kada korisnik pošalje POST zahtjev na URL <code>/Department/Delete/5</code>.<br /><br />
+            <code>try-catch</code> blok hvata grešku ako pokušamo obrisati odjel koji ima zaposlene (zbog FK
+            constraint-a u bazi).<br />
+            <code>TempData["Error"]</code> sprema poruku greške koja će se prikazati na Details stranici nakon
+            preusmjeravanja.
+        </div>
+
+        <h4>EmployeesPartial() &mdash; AJAX akcija</h4>
+        <div class="concept-box">
+            <code>PartialView("_EmployeesTable", employees)</code> vraća samo dio HTML-a (bez Layout stranice).<br />
+            Ovo se koristi za AJAX pozive &mdash; JavaScript šalje zahtjev, prima HTML fragment i ubacuje ga u stranicu
+            bez potpunog osvježavanja.
+        </div>
+
+        <h4>PopulateManagersSelectList() &mdash; Pomoćna metoda</h4>
+        <div class="concept-box">
+            Ova privatna metoda dohvaća sve zaposlenike, formatira ih kao "Prezime Ime" i kreira <code>SelectList</code>
+            objekt koji se sprema u <code>ViewBag.ManagerID</code>.<br />
+            <code>new SelectList(employees, "EmployeeID", "FullName", selectedEmployeeId)</code><br />
+            Parametri: kolekcija, value field, text field, trenutno odabrana vrijednost.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="index-view">Korak 2: Index View (Lista odjela)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Department/Index.cshtml</code><br />
+            Kreirajte folder <code>Views/Department/</code>, zatim dodajte <code>Index.cshtml</code>.
+        </div>
+
+        <pre><code>@model List&lt;BHAS.DbFirst.Department&gt;
+@{
+    ViewBag.Title = "Odjeli";
+}
+
+&lt;h2&gt;Odjeli&lt;/h2&gt;
+&lt;p&gt;
+    @Html.ActionLink("Kreiraj novi odjel", "Create", null, new { @class = "btn btn-primary" })
+&lt;/p&gt;
+
+&lt;table class="table table-bordered table-striped table-hover"&gt;
+    &lt;thead class="table-dark"&gt;
+        &lt;tr&gt;
+            &lt;th&gt;Naziv odjela&lt;/th&gt;
+            &lt;th&gt;Šifra&lt;/th&gt;
+            &lt;th&gt;Budžet&lt;/th&gt;
+            &lt;th&gt;Akcije&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        @foreach (var item in Model)
+        {
+            &lt;tr class="department-row" data-id="@item.DepartmentID" style="cursor: pointer;"&gt;
+                &lt;td&gt;@item.DepartmentName&lt;/td&gt;
+                &lt;td&gt;@item.DepartmentCode&lt;/td&gt;
+                &lt;td&gt;@item.Budget.ToString("N2")&lt;/td&gt;
+                &lt;td&gt;
+                    @Html.ActionLink("Detalji", "Details", new { id = item.DepartmentID }, new { @class = "btn btn-sm btn-info" })
+                    @Html.ActionLink("Uredi", "Edit", new { id = item.DepartmentID }, new { @class = "btn btn-sm btn-warning" })
+                    @Html.ActionLink("Obriši", "Delete", new { id = item.DepartmentID }, new { @class = "btn btn-sm btn-danger" })
+                &lt;/td&gt;
+            &lt;/tr&gt;
+        }
+    &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;div style="margin-top: 20px;"&gt;
+    &lt;h4 id="employeesHostTitle" style="display:none;"&gt;Zaposlenici odabranog odjela:&lt;/h4&gt;
+    &lt;div id="employeesHost"&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+@section scripts {
+    &lt;script&gt;
+        $(function () {
+            $(".department-row").on("click", function (e) {
+                if ($(e.target).is("a") || $(e.target).closest("a").length) return;
+
+                var departmentId = $(this).data("id");
+                var $host = $("#employeesHost");
+                var $title = $("#employeesHostTitle");
+
+                $host.html("&lt;div class='text-muted'&gt;Učitavam...&lt;/div&gt;");
+                $title.show();
+
+                $.get("/Department/EmployeesPartial", { departmentId: departmentId })
+                    .done(function (html) {
+                        $host.html(html);
+                    })
+                    .fail(function (xhr) {
+                        $host.html("&lt;div class='alert alert-danger'&gt;Greška pri učitavanju: " + xhr.status + "&lt;/div&gt;");
+                    });
+            });
+        });
+    &lt;/script&gt;
+}</code></pre>
+
+        <h3>Objašnjenje koda</h3>
+
+        <table class="table table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>Element</th>
+                    <th>Objašnjenje</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>@model List&lt;...Department&gt;</code></td>
+                    <td><strong>Model direktiva</strong> &mdash; Deklarira tip podataka koji View očekuje. Ovo omogućava
+                        IntelliSense i type-checking.</td>
+                </tr>
+                <tr>
+                    <td><code>@foreach (var item in Model)</code></td>
+                    <td>Iterira kroz listu odjela. <code>Model</code> je varijabla koja sadrži podatke proslijeđene iz
+                        kontrolera.</td>
+                </tr>
+                <tr>
+                    <td><code>@item.Budget.ToString("N2")</code></td>
+                    <td>Formatira broj s 2 decimalna mjesta i separatorom hiljada (npr. 1,500,000.00).</td>
+                </tr>
+                <tr>
+                    <td><code>data-id="@item.DepartmentID"</code></td>
+                    <td>HTML5 data atribut koji sprema ID odjela. JavaScript ga čita pomoću
+                        <code>$(this).data("id")</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>@Html.ActionLink("Detalji", "Details", new { id = item.DepartmentID }, ...)</code></td>
+                    <td>Kreira link koji vodi na <code>/Department/Details/5</code>.
+                        <code>new { id = item.DepartmentID }</code> su route values.</td>
+                </tr>
+                <tr>
+                    <td><code>@section scripts { ... }</code></td>
+                    <td>Definira sekciju koja se ubacuje na mjesto <code>@RenderSection("scripts")</code> u Layout
+                        stranici. Ovo osigurava da se skripte učitaju nakon jQuery-ja.</td>
+                </tr>
+                <tr>
+                    <td><code>$.get("/Department/EmployeesPartial", { departmentId: departmentId })</code></td>
+                    <td>jQuery AJAX GET zahtjev koji poziva EmployeesPartial akciju i prima HTML fragment.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="concept-box">
+            <strong>AJAX obrazac u ovom View-u:</strong><br />
+            1. Korisnik klikne na red u tabeli<br />
+            2. JavaScript čita <code>data-id</code> atribut iz kliknutog reda<br />
+            3. Šalje AJAX zahtjev na <code>/Department/EmployeesPartial?departmentId=X</code><br />
+            4. Server vraća HTML tabelu zaposlenika (partial view)<br />
+            5. JavaScript ubacuje primljeni HTML u <code>#employeesHost</code> div
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="details-view">Korak 3: Details View (Detalji odjela)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Department/Details.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Department
+@{
+    ViewBag.Title = "Detalji odjela";
+}
+
+&lt;h2&gt;Detalji odjela&lt;/h2&gt;
+
+@if (TempData["Error"] != null)
+{
+    &lt;div class="alert alert-danger"&gt;@TempData["Error"]&lt;/div&gt;
+}
+
+&lt;div class="card" style="max-width: 600px;"&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row"&gt;
+            &lt;dt class="col-sm-4"&gt;Naziv odjela&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.DepartmentName&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Šifra odjela&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.DepartmentCode&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Budžet&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.Budget.ToString("N2")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Menadžer&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;
+                @if (Model.Employee != null)
+                {
+                    @(Model.Employee.LastName + " " + Model.Employee.FirstName)
+                }
+                else
+                {
+                    &lt;span class="text-muted"&gt;Nije dodijeljen&lt;/span&gt;
+                }
+            &lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Datum kreiranja&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(Model.CreatedDate.HasValue ? Model.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm") : "-")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Datum izmjene&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(Model.ModifiedDate.HasValue ? Model.ModifiedDate.Value.ToString("dd.MM.yyyy HH:mm") : "-")&lt;/dd&gt;
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div style="margin-top: 15px;"&gt;
+    &lt;button id="btnLoadEmployees" class="btn btn-primary" type="button"
+            data-department-id="@Model.DepartmentID"&gt;
+        Učitaj zaposlene
+    &lt;/button&gt;
+    @Html.ActionLink("Uredi", "Edit", new { id = Model.DepartmentID }, new { @class = "btn btn-warning" })
+    @Html.ActionLink("Nazad na listu", "Index", null, new { @class = "btn btn-secondary" })
+&lt;/div&gt;
+
+&lt;div id="employeesHost" style="margin-top: 20px;"&gt;&lt;/div&gt;
+
+@section scripts {
+    &lt;script&gt;
+        $(function () {
+            $("#btnLoadEmployees").on("click", function () {
+                var departmentId = $(this).data("department-id");
+                var $host = $("#employeesHost");
+
+                $host.html("&lt;div class='text-muted'&gt;Učitavam...&lt;/div&gt;");
+
+                $.get("/Department/EmployeesPartial", { departmentId: departmentId })
+                    .done(function (html) {
+                        $host.html(html);
+                    })
+                    .fail(function (xhr) {
+                        $host.html("&lt;div class='alert alert-danger'&gt;Greška pri učitavanju: " + xhr.status + "&lt;/div&gt;");
+                    });
+            });
+        });
+    &lt;/script&gt;
+}</code></pre>
+
+        <h3>Objašnjenje novih koncepata</h3>
+
+        <table class="table table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>Element</th>
+                    <th>Objašnjenje</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>@model BHAS.DbFirst.Department</code></td>
+                    <td>Ovaj View prima <strong>jedan</strong> Department objekat (ne listu).</td>
+                </tr>
+                <tr>
+                    <td><code>TempData["Error"]</code></td>
+                    <td><code>TempData</code> je dictionary koji čuva podatke kroz <strong>jedno
+                            preusmjeravanje</strong>. Koristimo ga za prikaz greške nakon neuspjelog brisanja.</td>
+                </tr>
+                <tr>
+                    <td><code>&lt;dl class="row"&gt;</code></td>
+                    <td>HTML definition list s Bootstrap grid klasama za tabularni prikaz podataka.</td>
+                </tr>
+                <tr>
+                    <td><code>Model.Employee</code></td>
+                    <td>Navigacijsko svojstvo prema menadžeru. Može biti <code>null</code> ako menadžer nije dodijeljen.
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>Model.CreatedDate.HasValue</code></td>
+                    <td>Provjera da li nullable DateTime ima vrijednost. Ako nema, prikazujemo "-".</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="concept-box">
+            <strong>TempData vs ViewBag vs Session:</strong><br />
+            <ul class="mb-0">
+                <li><code>ViewBag</code> &mdash; Živi samo tokom jednog zahtjeva (request). Ne preživljava redirect.
+                </li>
+                <li><code>TempData</code> &mdash; Živi tokom jednog zahtjeva + jednog preusmjeravanja. Savršeno za
+                    poruke nakon RedirectToAction.</li>
+                <li><code>Session</code> &mdash; Živi tokom cijele korisničke sesije. Koristiti oprezno.</li>
+            </ul>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="create-view">Korak 4: Create View (Kreiranje odjela)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Department/Create.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Department
+@{
+    ViewBag.Title = "Kreiraj odjel";
+}
+
+&lt;h2&gt;Kreiraj novi odjel&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    &lt;div class="form-horizontal" style="max-width: 600px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.DepartmentName, "Naziv odjela", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.DepartmentName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.DepartmentName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.DepartmentCode, "Šifra odjela", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.DepartmentCode, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.DepartmentCode, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Budget, "Budžet", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.Budget, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Budget, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.ManagerID, "Menadžer", new { @class = "control-label" })
+            @Html.DropDownList("ManagerID", null, "-- odaberi menadžera --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.ManagerID, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mt-3"&gt;
+            &lt;input type="submit" value="Sačuvaj" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}</code></pre>
+
+        <h3>Objašnjenje forme i HTML helpera</h3>
+
+        <table class="table table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>Element</th>
+                    <th>Objašnjenje</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>@using (Html.BeginForm())</code></td>
+                    <td>Generira <code>&lt;form&gt;</code> tag koji šalje POST zahtjev na istu akciju (Create).
+                        <code>using</code> osigurava zatvaranje <code>&lt;/form&gt;</code> taga.</td>
+                </tr>
+                <tr>
+                    <td><code>@Html.AntiForgeryToken()</code></td>
+                    <td>Generira skriveno polje s CSRF tokenom. Odgovara <code>[ValidateAntiForgeryToken]</code>
+                        atributu na POST akciji.</td>
+                </tr>
+                <tr>
+                    <td><code>@Html.ValidationSummary(true, "", ...)</code></td>
+                    <td>Prikazuje listu svih validacijskih grešaka. <code>true</code> znači da prikazuje samo greške na
+                        nivou modela (ne i za pojedinačna polja).</td>
+                </tr>
+                <tr>
+                    <td><code>@Html.LabelFor(m =&gt; m.DepartmentName, "Naziv odjela")</code></td>
+                    <td>Generira <code>&lt;label&gt;</code> tag za svojstvo DepartmentName s prilagođenim tekstom.</td>
+                </tr>
+                <tr>
+                    <td><code>@Html.EditorFor(m =&gt; m.DepartmentName, new { htmlAttributes = new { @class = "form-control" } })</code>
+                    </td>
+                    <td>Generira odgovarajući <code>&lt;input&gt;</code> tag na osnovu tipa svojstva.
+                        <code>htmlAttributes</code> dodaje CSS klase.</td>
+                </tr>
+                <tr>
+                    <td><code>@Html.ValidationMessageFor(m =&gt; m.DepartmentName, "")</code></td>
+                    <td>Prikazuje validacijsku poruku greške za konkretno polje.</td>
+                </tr>
+                <tr>
+                    <td><code>@Html.DropDownList("ManagerID", null, "-- odaberi menadžera --", ...)</code></td>
+                    <td>Generira <code>&lt;select&gt;</code> tag. Koristi <code>ViewBag.ManagerID</code> (SelectList)
+                        koji smo postavili u kontroleru. Treći parametar je placeholder opcija.</td>
+                </tr>
+                <tr>
+                    <td><code>@Scripts.Render("~/bundles/jqueryval")</code></td>
+                    <td>Učitava jQuery Validate i Unobtrusive Validation skripte za klijentsku validaciju.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="concept-box">
+            <strong>Kako DropDownList i ViewBag rade zajedno:</strong><br />
+            1. U kontroleru:
+            <code>ViewBag.ManagerID = new SelectList(employees, "EmployeeID", "FullName", selectedId)</code><br />
+            2. U View-u: <code>@Html.DropDownList("ManagerID", null, ...)</code><br /><br />
+            Kada ime DropDownList-a (<code>"ManagerID"</code>) odgovara imenu ViewBag svojstva
+            (<code>ViewBag.ManagerID</code>), MVC automatski koristi tu SelectList kolekciju. Zato je drugi parametar
+            <code>null</code>.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="edit-view">Korak 5: Edit View (Uređivanje odjela)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Department/Edit.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Department
+@{
+    ViewBag.Title = "Uredi odjel";
+}
+
+&lt;h2&gt;Uredi odjel&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    &lt;div class="form-horizontal" style="max-width: 600px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        @Html.HiddenFor(m =&gt; m.DepartmentID)
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.DepartmentName, "Naziv odjela", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.DepartmentName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.DepartmentName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.DepartmentCode, "Šifra odjela", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.DepartmentCode, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.DepartmentCode, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Budget, "Budžet", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.Budget, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Budget, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.ManagerID, "Menadžer", new { @class = "control-label" })
+            @Html.DropDownList("ManagerID", null, "-- odaberi menadžera --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.ManagerID, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mt-3"&gt;
+            &lt;input type="submit" value="Sačuvaj izmjene" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Ključna razlika Edit od Create:</strong><br />
+            <code>@Html.HiddenFor(m =&gt; m.DepartmentID)</code> &mdash; Generira skriveno polje
+            <code>&lt;input type="hidden" name="DepartmentID" value="5" /&gt;</code>.<br /><br />
+            Ovo je <strong>kritično</strong> jer bez ovog polja, forma ne bi poslala ID i kontroler ne bi znao koji
+            zapis da ažurira. ID se ne prikazuje korisniku, ali se šalje zajedno s ostalim podacima.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="delete-view">Korak 6: Delete View (Potvrda brisanja)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Department/Delete.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Department
+@{
+    ViewBag.Title = "Obriši odjel";
+}
+
+&lt;h2&gt;Potvrda brisanja&lt;/h2&gt;
+
+&lt;div class="alert alert-warning"&gt;
+    &lt;strong&gt;Upozorenje!&lt;/strong&gt; Da li ste sigurni da želite obrisati ovaj odjel?
+&lt;/div&gt;
+
+&lt;div class="card" style="max-width: 500px;"&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row"&gt;
+            &lt;dt class="col-sm-4"&gt;Naziv odjela&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.DepartmentName&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Šifra odjela&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.DepartmentCode&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Budžet&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.Budget.ToString("N2")&lt;/dd&gt;
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+@using (Html.BeginForm("Delete", "Department", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="margin-top: 15px;"&gt;
+        &lt;input type="submit" value="Da, obriši" class="btn btn-danger" /&gt;
+        @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+    &lt;/div&gt;
+}</code></pre>
+
+        <h3>Objašnjenje Delete obrasca</h3>
+
+        <div class="concept-box">
+            <strong>Zašto koristimo formu za brisanje?</strong><br />
+            Brisanje podataka je destruktivna operacija i mora se slati kao <strong>POST</strong> zahtjev (ne GET). GET
+            zahtjevi mogu biti slučajno pozvani od strane crawlera, prefetch-a, ili čak korisnika koji klikne na
+            link.<br /><br />
+            <code>Html.BeginForm("Delete", "Department", FormMethod.Post)</code> &mdash; Eksplicitno navodi akciju,
+            kontroler i HTTP metodu. Ovo je potrebno jer Delete View nije na istom URL-u kao POST akcija.<br /><br />
+            Korisnik vidi podatke odjela i mora kliknuti "Da, obriši" da potvrdi brisanje.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="partial-view">Korak 7: _EmployeesTable Partial View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Department/_EmployeesTable.cshtml</code><br />
+            Konvencija: Partial view-ovi počinju sa <code>_</code> (donja crta).
+        </div>
+
+        <pre><code>@model List&lt;BHAS.DbFirst.Employee&gt;
+
+@if (Model == null || !Model.Any())
+{
+    &lt;div class="alert alert-info"&gt;Nema zaposlenih u ovom departmanu.&lt;/div&gt;
+}
+else
+{
+    &lt;table class="table table-bordered table-striped"&gt;
+        &lt;thead class="table-secondary"&gt;
+            &lt;tr&gt;
+                &lt;th&gt;Ime&lt;/th&gt;
+                &lt;th&gt;Prezime&lt;/th&gt;
+                &lt;th&gt;Pozicija&lt;/th&gt;
+                &lt;th&gt;Plata&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            @foreach (var emp in Model)
+            {
+                &lt;tr&gt;
+                    &lt;td&gt;@emp.FirstName&lt;/td&gt;
+                    &lt;td&gt;@emp.LastName&lt;/td&gt;
+                    &lt;td&gt;@emp.Position&lt;/td&gt;
+                    &lt;td&gt;@emp.Salary.ToString("N2")&lt;/td&gt;
+                &lt;/tr&gt;
+            }
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+    &lt;p class="text-muted"&gt;Ukupno zaposlenih: @Model.Count&lt;/p&gt;
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Šta je Partial View?</strong><br />
+            Partial View je View koji <strong>nema Layout</strong>. Renderira samo svoj sadržaj (HTML fragment) bez
+            &lt;html&gt;, &lt;head&gt;, &lt;body&gt; tagova.<br /><br />
+            Koristi se za:
+            <ul class="mb-0">
+                <li>AJAX pozive &mdash; Server vraća samo dio HTML-a koji JavaScript ubacuje u stranicu</li>
+                <li>Ponovnu upotrebu &mdash; Isti partial view se može koristiti na više stranica</li>
+                <li>Organizaciju &mdash; Razdvajanje velikih View-ova na manje dijelove</li>
+            </ul>
+            <br />
+            U kontroleru ga vraćamo s: <code>return PartialView("_EmployeesTable", employees);</code>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Šta ste naučili u ovom poglavlju</h2>
+        <ul>
+            <li><strong>CRUD obrazac</strong> &mdash; Index (lista), Details (detalji), Create (kreiranje), Edit
+                (uređivanje), Delete (brisanje)</li>
+            <li><strong>Entity Framework</strong> &mdash; <code>using (var db = new StateStatisticsDBEntities())</code>
+                za pristup bazi</li>
+            <li><strong>Include()</strong> &mdash; Eager loading za dohvatanje povezanih entiteta</li>
+            <li><strong>[HttpPost]</strong>, <strong>[ValidateAntiForgeryToken]</strong>, <strong>[Bind]</strong>
+                &mdash; Atributi za sigurnost i kontrolu POST akcija</li>
+            <li><strong>ViewBag i SelectList</strong> &mdash; Za popunjavanje DropDownList kontrola u formama</li>
+            <li><strong>Html.BeginForm</strong>, <strong>EditorFor</strong>, <strong>LabelFor</strong>,
+                <strong>ValidationMessageFor</strong> &mdash; HTML helperi za kreiranje formi</li>
+            <li><strong>HiddenFor</strong> &mdash; Skriveno polje za ID kod Edit akcije</li>
+            <li><strong>TempData</strong> &mdash; Za prosljeđivanje poruka kroz redirect</li>
+            <li><strong>Partial View</strong> &mdash; HTML fragment bez Layout-a, za AJAX ili ponovnu upotrebu</li>
+            <li><strong>AJAX sa jQuery</strong> &mdash; <code>$.get()</code> za asinhrono učitavanje sadržaja bez
+                osvježavanja stranice</li>
+            <li><strong>ActionName atribut</strong> &mdash; Za mapiranje metode s drugačijim imenom na istu URL rutu
+            </li>
+        </ul>
+
+        <div class="d-flex justify-content-between mt-4 mb-5">
+            <a href="01-layout-and-home.html" class="btn btn-outline-secondary btn-lg">&laquo; Prethodno: Layout i
+                Home</a>
+            <a href="03-employee.html" class="btn btn-primary btn-lg">Sljedeće: EmployeeController &raquo;</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

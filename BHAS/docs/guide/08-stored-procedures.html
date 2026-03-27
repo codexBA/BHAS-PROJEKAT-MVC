@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="bs">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Poglavlje 8 - Stored Procedures s Entity Framework 6</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: Consolas, 'Courier New', monospace;
+        }
+
+        .concept-box {
+            background: #e8f4fd;
+            border-left: 4px solid #0d6efd;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .step-box {
+            background: #d1e7dd;
+            border-left: 4px solid #198754;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .danger-box {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .nav-chapter {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-chapter a {
+            text-decoration: none;
+            padding: 8px 12px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .nav-chapter a:hover {
+            background: #e9ecef;
+        }
+
+        .nav-chapter a.active {
+            font-weight: bold;
+            background: #0d6efd;
+            color: white;
+            border-radius: 4px;
+        }
+
+        .summary-card {
+            background: #f0f7ff;
+            border: 2px solid #0d6efd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .pattern-pill {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: Consolas, monospace;
+        }
+
+        .pill-blue {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .pill-green {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .pill-orange {
+            background: #ffedd5;
+            color: #9a3412;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="nav-chapter">
+        <div class="container">
+            <a href="00-introduction.html">0 - Uvod</a>
+            <a href="01-layout-and-home.html">1 - Layout i Home</a>
+            <a href="02-department.html">2 - Department</a>
+            <a href="03-employee.html">3 - Employee</a>
+            <a href="04-project.html">4 - Project</a>
+            <a href="05-region.html">5 - Region</a>
+            <a href="06-economic-data.html">6 - EconomicData</a>
+            <a href="07-report.html">7 - Report</a>
+            <a href="08-stored-procedures.html" class="active">8 - Stored Procedure</a>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5">
+        <h1>Poglavlje 8: Stored Procedures s Entity Framework 6</h1>
+        <p class="lead">
+            U ovom poglavlju naučit ćete kako pozivati pohranjene procedure (stored procedures) iz Entity Framework 6 na
+            sva četiri načina — od čitanja postojećih entiteta, preko prilagođenih ViewModel oblika, do izvršavanja
+            UPDATE naredbi i prikaza broja ažuriranih redova.
+        </p>
+
+        <div class="alert alert-info">
+            <strong>Novi koncepti u ovom poglavlju:</strong>
+            <ul class="mb-0">
+                <li><code>db.Database.SqlQuery&lt;T&gt;()</code> — čitanje redova koji se mapiraju na postojeći EF
+                    entitet</li>
+                <li><code>db.Database.SqlQuery&lt;ViewModel&gt;()</code> — čitanje prilagođenog oblika koji nije ni
+                    jedan EF entitet</li>
+                <li><code>db.Database.ExecuteSqlCommand()</code> — izvršavanje UPDATE/DML procedure bez SELECT-a, vraća
+                    <code>int</code></li>
+                <li><code>SqlParameter</code> — siguran način prosljeđivanja parametara (zaštita od SQL injection)</li>
+                <li>Razlika između obaveznih i nullable parametara (<code>(object)value ?? DBNull.Value</code>)</li>
+                <li>ViewModeli čija svojstva moraju tačno odgovarati imenima kolona u proceduri</li>
+                <li>GET forme za filtriranje + POST forme za DML s inline prikazom rezultata</li>
+            </ul>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="pregled">Pregled — 4 načina pozivanja stored procedure</h2>
+
+        <p>Entity Framework 6 nudi dvije metode na <code>db.Database</code> objektu za rad s pohranjerim procedurama:
+        </p>
+
+        <table class="table table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Metoda</th>
+                    <th>Vraća</th>
+                    <th>Kada se koristi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><code>SqlQuery&lt;Employee&gt;(...)</code></td>
+                    <td>Lista <strong>EF entitet</strong> objekata (praćenih)</td>
+                    <td>Procedura vraća sve kolone koje odgovaraju EF entitetu (npr. <code>Employee</code>)</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><code>SqlQuery&lt;MojViewModel&gt;(...)</code></td>
+                    <td>Lista <strong>obične C# klase</strong> (nije praćena)</td>
+                    <td>Procedura vraća JOIN/GROUP BY oblik koji ne odgovara ni jednom entitetu</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td><code>ExecuteSqlCommand(...)</code> → <code>int</code></td>
+                    <td>Broj ažuriranih redova</td>
+                    <td>Procedura izvršava UPDATE bez SELECT — vraćeni <code>int</code> je broj ažuriranih redova</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>Isto kao 3 — prikazujemo <code>int</code></td>
+                    <td>Broj ažuriranih redova (kao povratna informacija)</td>
+                    <td>Isto kao gore — <code>int</code> se prikazuje korisniku kao poruka o uspjehu</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="concept-box">
+            <strong>Kako EF mapira kolone na svojstva:</strong><br />
+            <code>SqlQuery&lt;T&gt;</code> mapira kolone iz rezultata procedure na svojstva C# klase prema
+            <strong>imenu</strong>, bez obzira na velika/mala slova. Ako procedura vraća kolonu
+            <code>ManagerFullName</code>, na klasi mora postojati svojstvo <code>ManagerFullName</code> (ili
+            <code>managerfullname</code> — svejedno je). Ako kolona nema odgovarajuće svojstvo, ignorira se. Ako
+            obavezno (non-nullable) svojstvo nema odgovarajuću kolonu, EF baci grešku pri izvršavanju.
+        </div>
+
+        <div class="warning-box">
+            <strong>SET NOCOUNT i ExecuteSqlCommand:</strong><br />
+            Metoda <code>ExecuteSqlCommand</code> vraća broj redova koji je ADO.NET primio od SQL Servera. Ako procedura
+            poziva <code>SET NOCOUNT ON</code>, SQL Server ne šalje taj broj i ADO.NET vraća <code>-1</code>. Za sve
+            procedure koje pozivate s <code>ExecuteSqlCommand</code>, uvijek koristite <code>SET NOCOUNT OFF</code> (ili
+            ga uopće ne navođajte, jer je OFF zadana vrijednost).
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="sql">Korak 1: SQL — 7 pohranjenih procedura</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>BHAS.DbFirst/SQL/stored-procedures.sql</code><br />
+            Pokrenite ovaj skript u SSMS na bazi <code>StateStatisticsDB</code> prije testiranja aplikacije.
+        </div>
+
+        <p>Sve procedure su u <code>Stats</code> shemi. Evo kratkog pregleda svake:</p>
+
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Naziv</th>
+                    <th>Parametri</th>
+                    <th>Šta vraća</th>
+                    <th>EF6 metoda</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><code>sp_GetAllEmployees</code></td>
+                    <td>—</td>
+                    <td>Svi zaposlenici</td>
+                    <td><span class="pattern-pill pill-blue">SqlQuery&lt;Employee&gt;</span></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><code>sp_GetEmployeesByDepartment</code></td>
+                    <td><code>@DepartmentID INT</code></td>
+                    <td>Zaposlenici odjela</td>
+                    <td><span class="pattern-pill pill-blue">SqlQuery&lt;Employee&gt;</span></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td><code>sp_SearchEmployees</code></td>
+                    <td><code>@DepartmentID, @MinSalary, @MaxSalary</code> (svi nullable)</td>
+                    <td>Zaposlenici po filterima</td>
+                    <td><span class="pattern-pill pill-blue">SqlQuery&lt;Employee&gt;</span></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td><code>sp_GetDepartmentSummary</code></td>
+                    <td>—</td>
+                    <td>JOIN + GROUP BY agregati po odjelu</td>
+                    <td><span class="pattern-pill pill-green">SqlQuery&lt;DepartmentSummaryViewModel&gt;</span></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td><code>sp_GetRegionalStatsByYear</code></td>
+                    <td><code>@Year INT</code></td>
+                    <td>Regionalna statistika + izračunati BDPpc</td>
+                    <td><span class="pattern-pill pill-green">SqlQuery&lt;RegionalStatsViewModel&gt;</span></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td><code>sp_GiveSalaryRaise</code></td>
+                    <td><code>@DepartmentID, @PercentageIncrease</code></td>
+                    <td>UPDATE plate, bez SELECT</td>
+                    <td><span class="pattern-pill pill-orange">ExecuteSqlCommand</span></td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td><code>sp_UpdateProjectStatus</code></td>
+                    <td><code>@ProjectID, @NewStatus</code></td>
+                    <td>UPDATE statusa projekta, bez SELECT</td>
+                    <td><span class="pattern-pill pill-orange">ExecuteSqlCommand</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Opcioni parametri u SQL-u — obrazac IS NULL OR</h3>
+        <p>Procedura <code>sp_SearchEmployees</code> prima tri parametra koji su svi opcioni (zadana vrijednost je
+            NULL). Kada parametar nije proslijeđen, taj filter se preskače:</p>
+
+        <pre><code>CREATE PROCEDURE Stats.sp_SearchEmployees
+    @DepartmentID  INT           = NULL,
+    @MinSalary     DECIMAL(18,2) = NULL,
+    @MaxSalary     DECIMAL(18,2) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT ...
+    FROM Stats.Employees
+    WHERE
+        (@DepartmentID IS NULL OR DepartmentID = @DepartmentID)
+        AND (@MinSalary IS NULL OR Salary >= @MinSalary)
+        AND (@MaxSalary IS NULL OR Salary <= @MaxSalary);
+END</code></pre>
+
+        <div class="concept-box">
+            <strong>Obrazac <code>(@Param IS NULL OR kolona = @Param)</code>:</strong><br />
+            Ovo znači: "ako pozivač proslijedi NULL, ignoriši ovaj filter; inače primijeni ga". Ovo je standardni SQL
+            Server pristup za opcione WHERE uvjete unutar pohranjene procedure.
+        </div>
+
+        <h3>Izračunata kolona u SQL-u — BDP per capita</h3>
+        <p>Procedura <code>sp_GetRegionalStatsByYear</code> vraća kolonu <code>GDPPerCapita</code> koja ne postoji ni u
+            jednoj tabeli — izračunava se direktno u SQL-u:</p>
+
+        <pre><code>CASE
+    WHEN r.Population > 0 AND ed.GDP IS NOT NULL
+    THEN ed.GDP / r.Population
+    ELSE NULL
+END AS GDPPerCapita</code></pre>
+
+        <p>Provjera <code>Population > 0</code> sprečava dijeljenje s nulom. Rezultat je <code>nullable decimal</code> u
+            ViewModelu.</p>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="viewmodeli">Korak 2: ViewModeli za prilagođene oblike</h2>
+
+        <p>Procedure 4 i 5 vraćaju oblike koji ne odgovaraju ni jednom EF entitetu. Potrebne su nam obične C# klase čija
+            imena svojstava moraju tačno odgovarati imenima kolona u proceduri.</p>
+
+        <div class="step-box">
+            <strong>Lokacije datoteka:</strong><br />
+            <code>AS.MVCDemo/Models/DepartmentSummaryViewModel.cs</code><br />
+            <code>AS.MVCDemo/Models/RegionalStatsViewModel.cs</code>
+        </div>
+
+        <div class="danger-box">
+            <strong>Najčešća greška — nepodudaranje imena:</strong><br />
+            Ako procedura vraća kolonu nazvanu <code>TotalSalaryBill</code>, a vi napišete <code>TotalSalarybill</code>
+            ili <code>TotalSalary</code>, EF će tiho preskočiti tu kolonu i svojstvo će ostati na zadanoj vrijednosti (0
+            ili null). Nema nikakve poruke o grešci — ovo je teško pronaći!
+        </div>
+
+        <h3>DepartmentSummaryViewModel</h3>
+        <pre><code>namespace AS.MVCDemo.Models
+{
+    public class DepartmentSummaryViewModel
+    {
+        public int     DepartmentID       { get; set; }
+        public string  DepartmentName     { get; set; }
+        public string  DepartmentCode     { get; set; }
+        public decimal Budget             { get; set; }
+        public string  ManagerFullName    { get; set; }  // ← odgovara AS aliasu u proceduri
+        public int     EmployeeCount      { get; set; }
+        public decimal AverageSalary      { get; set; }
+        public decimal TotalSalaryBill    { get; set; }
+        public int     TotalProjectCount  { get; set; }
+        public int     ActiveProjectCount { get; set; }
+        public decimal TotalProjectBudget { get; set; }
+    }
+}</code></pre>
+
+        <h3>RegionalStatsViewModel</h3>
+        <pre><code>namespace AS.MVCDemo.Models
+{
+    public class RegionalStatsViewModel
+    {
+        public int      RegionID         { get; set; }
+        public string   RegionName       { get; set; }
+        public string   RegionCode       { get; set; }
+        public decimal  Population       { get; set; }
+        public int      Year             { get; set; }
+        public decimal? GDP              { get; set; }
+        public decimal? UnemploymentRate { get; set; }
+        public decimal? AverageSalary    { get; set; }
+        public decimal? InflationRate    { get; set; }
+        public decimal? GDPPerCapita     { get; set; }  // ← izračunato u SQL-u, može biti NULL
+    }
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Zašto <code>decimal?</code> za ekonomske vrijednosti?</strong><br />
+            Procedura radi LEFT JOIN, pa regija može nemati podataka za traženu godinu. U tom slučaju SQL vraća NULL za
+            sve numeričke kolone. Svojstvo tipa <code>decimal?</code> pravilno se mapira na SQL NULL. Obično
+            <code>decimal</code> bi bacilo grešku pri konverziji kada EF pokuša popuniti to svojstvo iz NULL
+            vrijednosti.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="controller">Korak 3: StoredProcController</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Controllers/StoredProcController.cs</code><br />
+            Obavezno dodajte <code>using System.Data.SqlClient;</code> — bez toga <code>SqlParameter</code> klasa nije
+            dostupna.
+        </div>
+
+        <h3>Pregled svih 10 akcija</h3>
+
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>HTTP</th>
+                    <th>URL</th>
+                    <th>Akcija</th>
+                    <th>EF6 obrazac</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>GET</td>
+                    <td>/StoredProc</td>
+                    <td><code>Index()</code></td>
+                    <td>— (landing stranica)</td>
+                </tr>
+                <tr>
+                    <td>GET</td>
+                    <td>/StoredProc/AllEmployees</td>
+                    <td><code>AllEmployees()</code></td>
+                    <td><span class="pattern-pill pill-blue">SqlQuery&lt;Employee&gt;</span> bez parametara</td>
+                </tr>
+                <tr>
+                    <td>GET</td>
+                    <td>/StoredProc/ByDepartment?departmentId=1</td>
+                    <td><code>ByDepartment(int?)</code></td>
+                    <td><span class="pattern-pill pill-blue">SqlQuery&lt;Employee&gt;</span> 1 param</td>
+                </tr>
+                <tr>
+                    <td>GET</td>
+                    <td>/StoredProc/SearchEmployees?deptId=&amp;min=&amp;max=</td>
+                    <td><code>SearchEmployees(int?,decimal?,decimal?)</code></td>
+                    <td><span class="pattern-pill pill-blue">SqlQuery&lt;Employee&gt;</span> nullable</td>
+                </tr>
+                <tr>
+                    <td>GET</td>
+                    <td>/StoredProc/DepartmentSummary</td>
+                    <td><code>DepartmentSummary()</code></td>
+                    <td><span class="pattern-pill pill-green">SqlQuery&lt;ViewModel&gt;</span></td>
+                </tr>
+                <tr>
+                    <td>GET</td>
+                    <td>/StoredProc/RegionalStats?year=2023</td>
+                    <td><code>RegionalStats(int?)</code></td>
+                    <td><span class="pattern-pill pill-green">SqlQuery&lt;ViewModel&gt;</span></td>
+                </tr>
+                <tr>
+                    <td>GET</td>
+                    <td>/StoredProc/SalaryRaise</td>
+                    <td><code>SalaryRaise()</code></td>
+                    <td>— (forma)</td>
+                </tr>
+                <tr>
+                    <td>POST</td>
+                    <td>/StoredProc/SalaryRaise</td>
+                    <td><code>SalaryRaise(int, decimal)</code></td>
+                    <td><span class="pattern-pill pill-orange">ExecuteSqlCommand</span></td>
+                </tr>
+                <tr>
+                    <td>GET</td>
+                    <td>/StoredProc/UpdateProjectStatus</td>
+                    <td><code>UpdateProjectStatus()</code></td>
+                    <td>— (forma)</td>
+                </tr>
+                <tr>
+                    <td>POST</td>
+                    <td>/StoredProc/UpdateProjectStatus</td>
+                    <td><code>UpdateProjectStatus(int, string)</code></td>
+                    <td><span class="pattern-pill pill-orange">ExecuteSqlCommand</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Kompletan kod kontrolera</h3>
+
+        <pre><code>using AS.MVCDemo.Models;
+using BHAS.DbFirst;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web.Mvc;
+
+namespace AS.MVCDemo.Controllers
+{
+    public class StoredProcController : Controller
+    {
+        // GET: StoredProc
+        public ActionResult Index()
+        {
+            return View();
+        }
+
+        // ── SP 1: SqlQuery&lt;Employee&gt; — bez parametara ──────────────────────────
+        public ActionResult AllEmployees()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var list = db.Database
+                             .SqlQuery&lt;Employee&gt;("EXEC Stats.sp_GetAllEmployees")
+                             .ToList();
+                return View(list);
+            }
+        }
+
+        // ── SP 2: SqlQuery&lt;Employee&gt; — jedan parametar ─────────────────────────
+        public ActionResult ByDepartment(int? departmentId)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, departmentId);
+
+                if (!departmentId.HasValue)
+                    return View((object)null);  // ← cast na object je obavezan (vidi objašnjenje)
+
+                var p = new SqlParameter("@DepartmentID", departmentId.Value);
+                var list = db.Database
+                             .SqlQuery&lt;Employee&gt;(
+                                 "EXEC Stats.sp_GetEmployeesByDepartment @DepartmentID",
+                                 p)
+                             .ToList();
+
+                ViewBag.FilterDepartment = db.Departments.Find(departmentId.Value)?.DepartmentName;
+                return View(list);
+            }
+        }
+
+        // ── SP 3: SqlQuery&lt;Employee&gt; — nullable parametri ──────────────────────
+        public ActionResult SearchEmployees(int? deptId, decimal? min, decimal? max)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, deptId);
+
+                var p1 = new SqlParameter("@DepartmentID", (object)deptId ?? System.DBNull.Value);
+                var p2 = new SqlParameter("@MinSalary",    (object)min    ?? System.DBNull.Value);
+                var p3 = new SqlParameter("@MaxSalary",    (object)max    ?? System.DBNull.Value);
+
+                var list = db.Database
+                             .SqlQuery&lt;Employee&gt;(
+                                 "EXEC Stats.sp_SearchEmployees @DepartmentID, @MinSalary, @MaxSalary",
+                                 p1, p2, p3)
+                             .ToList();
+
+                return View(list);
+            }
+        }
+
+        // ── SP 4: SqlQuery&lt;ViewModel&gt; — prilagođeni oblik, bez parametara ─────
+        public ActionResult DepartmentSummary()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var list = db.Database
+                             .SqlQuery&lt;DepartmentSummaryViewModel&gt;(
+                                 "EXEC Stats.sp_GetDepartmentSummary")
+                             .ToList();
+                return View(list);
+            }
+        }
+
+        // ── SP 5: SqlQuery&lt;ViewModel&gt; — prilagođeni oblik, jedan parametar ────
+        public ActionResult RegionalStats(int? year)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var years = db.EconomicDatas
+                              .Select(x => x.Year)
+                              .Distinct()
+                              .OrderByDescending(y => y)
+                              .ToList();
+                ViewBag.Years = new SelectList(years);
+
+                if (!year.HasValue)
+                    return View((object)null);
+
+                ViewBag.SelectedYear = year.Value;
+                var p = new SqlParameter("@Year", year.Value);
+                var list = db.Database
+                             .SqlQuery&lt;RegionalStatsViewModel&gt;(
+                                 "EXEC Stats.sp_GetRegionalStatsByYear @Year",
+                                 p)
+                             .ToList();
+                return View(list);
+            }
+        }
+
+        // ── SP 6: ExecuteSqlCommand — GET forma ────────────────────────────────
+        public ActionResult SalaryRaise()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, null);
+                return View();
+            }
+        }
+
+        // ── SP 6: ExecuteSqlCommand — POST ─────────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult SalaryRaise(int departmentId, decimal percentage)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var p1 = new SqlParameter("@DepartmentID",       departmentId);
+                var p2 = new SqlParameter("@PercentageIncrease", percentage);
+
+                int rows = db.Database.ExecuteSqlCommand(
+                    "EXEC Stats.sp_GiveSalaryRaise @DepartmentID, @PercentageIncrease",
+                    p1, p2);
+
+                ViewBag.RowsAffected = rows;         // ← šalje se view-u za prikaz poruke
+                PopulateDepartmentsSelectList(db, departmentId);
+                return View();                       // ← ostaje na istoj stranici (ne redirect)
+            }
+        }
+
+        // ── SP 7: ExecuteSqlCommand — GET forma ────────────────────────────────
+        public ActionResult UpdateProjectStatus()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateProjectsSelectList(db, null);
+                PopulateStatusSelectList(null);
+                return View();
+            }
+        }
+
+        // ── SP 7: ExecuteSqlCommand — POST ─────────────────────────────────────
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UpdateProjectStatus(int projectId, string newStatus)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var p1 = new SqlParameter("@ProjectID", projectId);
+                var p2 = new SqlParameter("@NewStatus", newStatus);
+
+                int rows = db.Database.ExecuteSqlCommand(
+                    "EXEC Stats.sp_UpdateProjectStatus @ProjectID, @NewStatus",
+                    p1, p2);
+
+                ViewBag.RowsAffected = rows;
+                PopulateProjectsSelectList(db, projectId);
+                PopulateStatusSelectList(newStatus);
+                return View();
+            }
+        }
+
+        // ── Pomoćne metode ──────────────────────────────────────────────────────
+        private void PopulateDepartmentsSelectList(StateStatisticsDBEntities db, int? selectedId)
+        {
+            var departments = db.Departments.OrderBy(x => x.DepartmentName).ToList();
+            ViewBag.DepartmentID = new SelectList(departments, "DepartmentID", "DepartmentName", selectedId);
+        }
+
+        private void PopulateProjectsSelectList(StateStatisticsDBEntities db, int? selectedId)
+        {
+            var projects = db.Projects.OrderBy(x => x.ProjectName).ToList();
+            ViewBag.ProjectID = new SelectList(projects, "ProjectID", "ProjectName", selectedId);
+        }
+
+        private void PopulateStatusSelectList(string selectedStatus)
+        {
+            var statuses = new[]
+            {
+                new { Value = "Planned",    Text = "Planiran" },
+                new { Value = "InProgress", Text = "U toku"   },
+                new { Value = "Completed",  Text = "Završen"  },
+                new { Value = "Cancelled",  Text = "Otkazan"  }
+            };
+            ViewBag.StatusList = new SelectList(statuses, "Value", "Text", selectedStatus);
+        }
+    }
+}</code></pre>
+
+        <h3>Detaljno objašnjenje ključnih dijelova</h3>
+
+        <h4>1. SqlQuery&lt;T&gt; — kako pozvati proceduru</h4>
+        <div class="concept-box">
+            <strong>Bez parametara:</strong><br />
+            <code>db.Database.SqlQuery&lt;Employee&gt;("EXEC Stats.sp_GetAllEmployees")</code><br /><br />
+            <strong>S jednim parametrom:</strong><br />
+            <code>var p = new SqlParameter("@DepartmentID", departmentId.Value);</code><br />
+            <code>db.Database.SqlQuery&lt;Employee&gt;("EXEC Stats.sp_GetAllEmployees @DepartmentID", p)</code><br /><br />
+            String koji prosljeđujete je isti SQL koji biste upisali u SSMS. Uvijek koristite <code>SqlParameter</code>
+            — <strong>nikad</strong> string interpolaciju ili konkatenaciju, jer je to SQL injection ranjivost.
+        </div>
+
+        <h4>2. return View((object)null) — zašto je cast obavezan</h4>
+        <div class="warning-box">
+            Kada akcija nema podataka za prikaz (npr. nije odabran odjel), šaljemo null model view-u. Ali
+            <code>return View(null)</code> je dvosmisleno — kompajler ne zna radi li se o
+            <code>View(string viewName)</code> ili <code>View(object model)</code> overloadu. <strong>Cast
+                <code>(object)null</code></strong> razrješava tu dvosmislenost. U view-u zatim provjerite:
+            <code>@if (Model != null) { ... }</code>
+        </div>
+
+        <h4>3. ExecuteSqlCommand i return View() umjesto redirect-a</h4>
+        <div class="concept-box">
+            Za DML akcije (SalaryRaise, UpdateProjectStatus) ostajemo na istoj stranici umjesto da preusmjeravamo na
+            Index. Razlog: trebamo prikazati poruku korisniku ("3 zaposlenika ažurirano"). Redirect bi obrisao
+            ViewBag.<br /><br />
+            <strong>Pravilo:</strong> <code>return View()</code> koristite samo za ovakve feedback akcije, ne za
+            Create/Edit gdje bi refresh stranice ponovio POST zahtjev.
+        </div>
+
+        <h4>4. PopulateStatusSelectList — statički dropdown bez baze</h4>
+        <div class="concept-box">
+            Status projekta (Planned, InProgress, Completed, Cancelled) su fiksne vrijednosti definirane CHECK
+            constraintom u bazi. Ne trebamo upit na bazu — koristimo anonimni niz s <code>Value</code> i
+            <code>Text</code> svojstvima. <code>SelectList</code> prima ta svojstva po imenu kao string parametre.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="sqlparameter">Korak 4: SqlParameter — obavezni vs nullable parametri</h2>
+
+        <p>Ovo je najčešće mjesto greške pri pozivanju procedura. Postoje dva slučaja:</p>
+
+        <h3>Obavezni parametar (ne može biti null)</h3>
+        <pre><code>// Jednostavno: prosljeđujemo vrijednost direktno
+var p = new SqlParameter("@DepartmentID", departmentId);</code></pre>
+
+        <h3>Nullable / opcioni parametar</h3>
+        <pre><code>// C# null se NE može direktno proslijediti — ADO.NET baci ArgumentNullException
+// Morate pretvoriti null → DBNull.Value
+
+var p = new SqlParameter("@DepartmentID", (object)departmentId ?? DBNull.Value);
+//                                         ↑ cast na object je neophodan</code></pre>
+
+        <div class="concept-box">
+            <strong>Zašto <code>(object)</code> cast?</strong><br />
+            Bez casta na <code>(object)</code>, operator <code>??</code> radi na tipu <code>int?</code>, a desna strana
+            <code>DBNull.Value</code> je drugačiji tip — izraz se ne kompajlira. Cast na <code>(object)</code> pakuje
+            nullable integer kao <code>object</code>, čineći obje strane <code>??</code> istog tipa. Kada je vrijednost
+            null, izraz postaje <code>DBNull.Value</code>, što ADO.NET ispravno prevodi u SQL NULL.<br /><br />
+            Ovaj obrazac radi za sve nullable tipove: <code>int?</code>, <code>decimal?</code>, <code>DateTime?</code>
+            itd.
+        </div>
+
+        <h3>Primjer s tri nullable parametra</h3>
+        <pre><code>var p1 = new SqlParameter("@DepartmentID", (object)deptId ?? System.DBNull.Value);
+var p2 = new SqlParameter("@MinSalary",    (object)min    ?? System.DBNull.Value);
+var p3 = new SqlParameter("@MaxSalary",    (object)max    ?? System.DBNull.Value);
+
+var list = db.Database
+             .SqlQuery&lt;Employee&gt;(
+                 "EXEC Stats.sp_SearchEmployees @DepartmentID, @MinSalary, @MaxSalary",
+                 p1, p2, p3)
+             .ToList();</code></pre>
+
+        <div class="warning-box">
+            <strong>Redoslijed parametara u EXEC stringu mora odgovarati SqlParameter objektima!</strong><br />
+            Ime placeholder-a u SQL stringu (<code>@DepartmentID</code>) mora se podudarati s imenom koje ste dali
+            <code>SqlParameter</code> objektu (<code>"@DepartmentID"</code>). Redoslijed u EXEC stringu i redoslijed
+            objekata koji se prosljeđuju metodi moraju biti konzistentni.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="views">Korak 5: View-ovi</h2>
+
+        <div class="step-box">
+            <strong>Lokacija foldera:</strong> <code>Views/StoredProc/</code><br />
+            Kreirajte folder, zatim dodajte 8 view-ova navedenih ispod.
+        </div>
+
+        <h3>Index.cshtml — landing stranica s karticama</h3>
+        <p>Nema <code>@model</code> direktive. Koristi Bootstrap kartice za pregled svih demo akcija s opisima i
+            linkovima.</p>
+
+        <pre><code>@{
+    ViewBag.Title = "Pohranjene procedure";
+}
+
+&lt;h2&gt;Pohranjene procedure (Stored Procedures)&lt;/h2&gt;
+&lt;p class="text-muted"&gt;Primjeri pozivanja stored procedura — sva 4 obrasca.&lt;/p&gt;
+
+&lt;div class="row mt-4"&gt;
+    &lt;div class="col-md-6 mb-3"&gt;
+        &lt;div class="card h-100"&gt;
+            &lt;div class="card-header bg-primary text-white"&gt;
+                &lt;strong&gt;SqlQuery&lt;Employee&gt;&lt;/strong&gt; — postojeći entitet
+            &lt;/div&gt;
+            &lt;div class="card-body"&gt;
+                &lt;h5&gt;SP 1 — Svi zaposlenici&lt;/h5&gt;
+                @Html.ActionLink("Otvori", "AllEmployees", null,
+                    new { @class = "btn btn-outline-primary btn-sm" })
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;!-- ... ostale kartice za SP 2-7 ... --&gt;
+&lt;/div&gt;</code></pre>
+
+        <h3>AllEmployees.cshtml — tabela bez akcija</h3>
+        <p>Model je <code>List&lt;BHAS.DbFirst.Employee&gt;</code> — isti entitet koji se koristi u
+            <code>Employee/Index.cshtml</code>. Jedina razlika: nema gumba Uredi/Obriši jer je ovo read-only demo.</p>
+
+        <pre><code>@model List&lt;BHAS.DbFirst.Employee&gt;
+@{
+    ViewBag.Title = "SP1 — Svi zaposlenici";
+}
+
+&lt;h2&gt;SP 1 — Svi zaposlenici&lt;/h2&gt;
+&lt;p class="text-muted"&gt;
+    &lt;code&gt;db.Database.SqlQuery&lt;Employee&gt;("EXEC Stats.sp_GetAllEmployees")&lt;/code&gt;
+&lt;/p&gt;
+
+&lt;table class="table table-bordered table-striped table-hover"&gt;
+    &lt;thead class="table-dark"&gt;
+        &lt;tr&gt;
+            &lt;th&gt;Ime&lt;/th&gt;&lt;th&gt;Prezime&lt;/th&gt;&lt;th&gt;Pozicija&lt;/th&gt;&lt;th&gt;Plata&lt;/th&gt;&lt;th&gt;Zaposlenje&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        @foreach (var item in Model)
+        {
+            &lt;tr&gt;
+                &lt;td&gt;@item.FirstName&lt;/td&gt;
+                &lt;td&gt;@item.LastName&lt;/td&gt;
+                &lt;td&gt;@item.Position&lt;/td&gt;
+                &lt;td&gt;@item.Salary.ToString("N2")&lt;/td&gt;
+                &lt;td&gt;@item.HireDate.ToString("dd.MM.yyyy")&lt;/td&gt;
+            &lt;/tr&gt;
+        }
+    &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+        <h3>ByDepartment.cshtml — GET forma s dropdown filterom</h3>
+        <p>Isti obrazac kao <code>EconomicData/Index.cshtml</code> — GET forma s dropdown-om čija se vrijednost šalje
+            kao query string. View obrađuje dva stanja: model je null (nije odabran odjel) i model je lista (prikaži
+            tabelu).</p>
+
+        <pre><code>@model List&lt;BHAS.DbFirst.Employee&gt;
+
+@using (Html.BeginForm("ByDepartment", "StoredProc", FormMethod.Get))
+{
+    @Html.DropDownList("departmentId", (SelectList)ViewBag.DepartmentID,
+                       "-- odaberi odjel --", new { @class = "form-control" })
+    &lt;button type="submit" class="btn btn-outline-secondary"&gt;Filtriraj&lt;/button&gt;
+}
+
+@if (Model != null)
+{
+    &lt;!-- tabela zaposlenika --&gt;
+}
+else
+{
+    &lt;p class="text-muted"&gt;Odaberite odjel iz dropdown liste.&lt;/p&gt;
+}</code></pre>
+
+        <h3>SearchEmployees.cshtml — GET forma s 3 opciona filtera</h3>
+        <p>Tri ulazna polja: dropdown za odjel i dva number inputa za raspon plata. Vrijednosti se čuvaju u poljima pri
+            ponovnom učitavanju stranice putem <code>Request.QueryString["min"]</code>.</p>
+
+        <pre><code>@using (Html.BeginForm("SearchEmployees", "StoredProc", FormMethod.Get))
+{
+    @Html.DropDownList("deptId", (SelectList)ViewBag.DepartmentID,
+                       "-- svi odjeli --", new { @class = "form-control" })
+    &lt;input type="number" name="min" value="@Request.QueryString["min"]"
+           class="form-control" placeholder="Min. plata" /&gt;
+    &lt;input type="number" name="max" value="@Request.QueryString["max"]"
+           class="form-control" placeholder="Max. plata" /&gt;
+    &lt;button type="submit" class="btn btn-primary"&gt;Pretraži&lt;/button&gt;
+}</code></pre>
+
+        <h3>DepartmentSummary.cshtml — tabela ViewModela</h3>
+        <p>Model je <code>List&lt;AS.MVCDemo.Models.DepartmentSummaryViewModel&gt;</code>. Potreban je potpuni namespace
+            jer ViewModel nije EF entitet.</p>
+
+        <pre><code>@model List&lt;AS.MVCDemo.Models.DepartmentSummaryViewModel&gt;
+
+&lt;table class="table table-bordered table-striped"&gt;
+    &lt;thead class="table-dark"&gt;
+        &lt;tr&gt;
+            &lt;th&gt;Odjel&lt;/th&gt;&lt;th&gt;Menadžer&lt;/th&gt;&lt;th&gt;Zaposlenici&lt;/th&gt;
+            &lt;th&gt;Prosj. plata&lt;/th&gt;&lt;th&gt;Ukupne plate&lt;/th&gt;&lt;th&gt;Projekti&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        @foreach (var item in Model)
+        {
+            &lt;tr&gt;
+                &lt;td&gt;@item.DepartmentName&lt;/td&gt;
+                &lt;td&gt;@item.ManagerFullName&lt;/td&gt;
+                &lt;td&gt;@item.EmployeeCount&lt;/td&gt;
+                &lt;td&gt;@item.AverageSalary.ToString("N2")&lt;/td&gt;
+                &lt;td&gt;@item.TotalSalaryBill.ToString("N2")&lt;/td&gt;
+                &lt;td&gt;@item.TotalProjectCount (@item.ActiveProjectCount aktivnih)&lt;/td&gt;
+            &lt;/tr&gt;
+        }
+    &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+        <h3>SalaryRaise.cshtml — POST forma s inline rezultatom</h3>
+        <p>Forma sadrži dropdown za odjel i number input za postotak. Nakon POST-a, isti view se vraća (bez redirect-a)
+            s <code>ViewBag.RowsAffected</code> koji prikazuje koliko je zaposlenika ažurirano.</p>
+
+        <pre><code>@if (ViewBag.RowsAffected != null)
+{
+    &lt;div class="alert alert-success"&gt;
+        &lt;strong&gt;@ViewBag.RowsAffected zaposlenika ažurirano.&lt;/strong&gt;
+    &lt;/div&gt;
+}
+
+@using (Html.BeginForm("SalaryRaise", "StoredProc", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()   &lt;!-- OBAVEZNO za [ValidateAntiForgeryToken] --&gt;
+
+    @Html.DropDownList("departmentId", (SelectList)ViewBag.DepartmentID,
+                       "-- odaberi odjel --", new { @class = "form-control" })
+    &lt;input type="number" name="percentage" class="form-control"
+           step="0.01" min="0.01" placeholder="npr. 10" required /&gt;
+    &lt;button type="submit" class="btn btn-warning"&gt;Primijeni povišicu&lt;/button&gt;
+}</code></pre>
+
+        <div class="warning-box">
+            <strong><code>@Html.AntiForgeryToken()</code> je obavezan u svakoj POST formi!</strong><br />
+            Atribut <code>[ValidateAntiForgeryToken]</code> na POST akciji odbija svaki zahtjev koji ne sadrži token
+            koji generiše <code>@Html.AntiForgeryToken()</code>. Ako zaboravite token u view-u, POST će vratiti 400
+            grešku. Ovo je standardna CSRF zaštita u ASP.NET MVC.
+        </div>
+
+        <h3>UpdateProjectStatus.cshtml — dva dropdown-a, POST forma</h3>
+        <p>Slično kao SalaryRaise, ali s dva dropdown-a: jedan za projekte (iz baze) i jedan za status (statička lista).
+            Nakon POST-a prikazuje uspješnu poruku ili upozorenje ako projekt nije pronađen.</p>
+
+        <pre><code>@if (ViewBag.RowsAffected != null)
+{
+    if ((int)ViewBag.RowsAffected > 0)
+    {
+        &lt;div class="alert alert-success"&gt;Status projekta je uspješno promijenjen.&lt;/div&gt;
+    }
+    else
+    {
+        &lt;div class="alert alert-warning"&gt;Projekt nije pronađen — ništa nije ažurirano.&lt;/div&gt;
+    }
+}
+
+@using (Html.BeginForm("UpdateProjectStatus", "StoredProc", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+    @Html.DropDownList("projectId", (SelectList)ViewBag.ProjectID,
+                       "-- odaberi projekt --", new { @class = "form-control" })
+    @Html.DropDownList("newStatus", (SelectList)ViewBag.StatusList,
+                       "-- odaberi status --", new { @class = "form-control" })
+    &lt;button type="submit" class="btn btn-warning"&gt;Ažuriraj status&lt;/button&gt;
+}</code></pre>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="konzola">Korak 6: Demo klasa za konzolnu aplikaciju</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>BHAS.DbFirst/Demo/StoredProcExamples.cs</code>
+        </div>
+
+        <p>Ova klasa prati isti obrazac kao <code>ReadingExamples.cs</code> — svaka metoda je samostalna s vlastitim
+            <code>using (var db = ...)</code> blokom. Poziva se iz konzolne aplikacije
+            (<code>AS.ConsoleDbDemo/Program.cs</code>).</p>
+
+        <pre><code>using System.Collections.Generic;
+using System.Data.SqlClient;  // ← OBAVEZNO za SqlParameter
+using System.Linq;
+
+namespace BHAS.DbFirst.Demo
+{
+    public class StoredProcExamples
+    {
+        // SP 1 — SqlQuery&lt;Employee&gt;, bez parametara
+        public List&lt;Employee&gt; GetAllEmployees()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                return db.Database
+                         .SqlQuery&lt;Employee&gt;("EXEC Stats.sp_GetAllEmployees")
+                         .ToList();
+            }
+        }
+
+        // SP 3 — SqlQuery&lt;Employee&gt;, nullable parametri
+        public List&lt;Employee&gt; SearchEmployees(
+            int? departmentId = null, decimal? minSalary = null, decimal? maxSalary = null)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var p1 = new SqlParameter("@DepartmentID", (object)departmentId ?? DBNull.Value);
+                var p2 = new SqlParameter("@MinSalary",    (object)minSalary    ?? DBNull.Value);
+                var p3 = new SqlParameter("@MaxSalary",    (object)maxSalary    ?? DBNull.Value);
+
+                return db.Database
+                         .SqlQuery&lt;Employee&gt;(
+                             "EXEC Stats.sp_SearchEmployees @DepartmentID, @MinSalary, @MaxSalary",
+                             p1, p2, p3)
+                         .ToList();
+            }
+        }
+
+        // SP 4 — SqlQuery&lt;DepartmentSummaryViewModel&gt;, prilagođeni oblik
+        public List&lt;DepartmentSummaryViewModel&gt; GetDepartmentSummary()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                return db.Database
+                         .SqlQuery&lt;DepartmentSummaryViewModel&gt;(
+                             "EXEC Stats.sp_GetDepartmentSummary")
+                         .ToList();
+            }
+        }
+
+        // SP 6 — ExecuteSqlCommand, vraća broj ažuriranih redova
+        public int GiveSalaryRaise(int departmentId, decimal percentageIncrease)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var p1 = new SqlParameter("@DepartmentID",       departmentId);
+                var p2 = new SqlParameter("@PercentageIncrease", percentageIncrease);
+
+                return db.Database.ExecuteSqlCommand(
+                    "EXEC Stats.sp_GiveSalaryRaise @DepartmentID, @PercentageIncrease",
+                    p1, p2);
+            }
+        }
+    }
+}</code></pre>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="navigacija">Korak 7: Ažuriranje navigacije</h2>
+
+        <h3>_Layout.cshtml — dodavanje linka</h3>
+        <p>U <code>Views/Shared/_Layout.cshtml</code> dodajte link za novu sekciju odmah nakon linka za Izvještaje:</p>
+
+        <pre><code>&lt;li&gt;@Html.ActionLink("Izvještaji", "Index", "Report",
+        new { area = "" }, new { @class = "nav-link" })&lt;/li&gt;
+&lt;!-- Dodajte ovaj red: --&gt;
+&lt;li&gt;@Html.ActionLink("Stored Proc", "Index", "StoredProc",
+        new { area = "" }, new { @class = "nav-link" })&lt;/li&gt;</code></pre>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Šta ste naučili u ovom poglavlju</h2>
+        <ul>
+            <li><strong>4 EF6 obrasca za pozivanje procedura</strong> — <code>SqlQuery&lt;Entity&gt;</code>,
+                <code>SqlQuery&lt;ViewModel&gt;</code>, <code>ExecuteSqlCommand</code> (s i bez prikaza rezultata)</li>
+            <li><strong>SqlParameter</strong> — jedini siguran način prosljeđivanja parametara, zaštita od SQL injection
+                napada</li>
+            <li><strong>Nullable parametri</strong> — <code>(object)value ?? DBNull.Value</code> obrazac i zašto je
+                <code>(object)</code> cast obavezan</li>
+            <li><strong>ViewModeli</strong> — obične C# klase čija imena svojstava moraju tačno odgovarati imenima
+                kolona u proceduri</li>
+            <li><strong>SET NOCOUNT OFF</strong> — obavezno za procedure koje se pozivaju s
+                <code>ExecuteSqlCommand</code></li>
+            <li><strong>return View((object)null)</strong> — kako poslati null model view-u bez kompajlerske
+                dvosmislenosti</li>
+            <li><strong>return View() umjesto redirect-a</strong> — kada je ispravno ostati na istoj stranici i
+                prikazati feedback</li>
+            <li><strong>Izračunate kolone u SQL-u</strong> — mogu se mapirati na ViewModel svojstva kao da su normalne
+                kolone</li>
+        </ul>
+
+        <hr />
+
+        <div class="summary-card">
+            <h2>Čestitamo! Završili ste cijeli vodič.</h2>
+            <p>Pregledajte sva poglavlja:</p>
+            <div class="list-group">
+                <a href="00-introduction.html" class="list-group-item list-group-item-action">Poglavlje 0: Uvod u
+                    ASP.NET MVC</a>
+                <a href="01-layout-and-home.html" class="list-group-item list-group-item-action">Poglavlje 1: Layout i
+                    HomeController</a>
+                <a href="02-department.html" class="list-group-item list-group-item-action">Poglavlje 2:
+                    DepartmentController (CRUD + AJAX Partial)</a>
+                <a href="03-employee.html" class="list-group-item list-group-item-action">Poglavlje 3:
+                    EmployeeController (CRUD + Dropdown)</a>
+                <a href="04-project.html" class="list-group-item list-group-item-action">Poglavlje 4: ProjectController
+                    (Statički Dropdown + Badge)</a>
+                <a href="05-region.html" class="list-group-item list-group-item-action">Poglavlje 5: RegionController
+                    (CRUD + Cross-Controller)</a>
+                <a href="06-economic-data.html" class="list-group-item list-group-item-action">Poglavlje 6:
+                    EconomicDataController (Filter + Redirect)</a>
+                <a href="07-report.html" class="list-group-item list-group-item-action">Poglavlje 7: ReportController
+                    (Multi-Dropdown + Child Data)</a>
+                <a href="08-stored-procedures.html" class="list-group-item list-group-item-action active">Poglavlje 8:
+                    Stored Procedures (SqlQuery + ExecuteSqlCommand)</a>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-start mt-4 mb-5">
+            <a href="07-report.html" class="btn btn-outline-secondary btn-lg">&laquo; Prethodno: Report</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
