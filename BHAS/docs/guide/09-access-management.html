@@ -295,7 +295,7 @@ HTTP odgovor vraćen pregledaču
 
         <div class="step-box">
             Pokreni u <strong>Package Manager Console</strong> (Tools → NuGet → Package Manager Console),
-            obavezno odaberi <em>AS.MVCDemo</em> kao Default Project:
+            obavezno odaberi <em>BHAS</em> kao Default Project:
         </div>
 
         <pre><code>Install-Package Microsoft.AspNet.Identity.Core         -Version 2.2.3
@@ -329,7 +329,7 @@ using Microsoft.AspNet.Identity.EntityFramework;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace AS.MVCDemo.Models
+namespace BHAS.Models
 {
     // ApplicationUser nasljeđuje IdentityUser.
     // IdentityUser već ima: Id, UserName, Email, PasswordHash, SecurityStamp...
@@ -416,12 +416,12 @@ using System;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
-using AS.MVCDemo.Models;
+using BHAS.Models;
 
 // Ovaj atribut kaže OWIN-u: "kada aplikacija krene, pozovi Startup.Configuration()"
-[assembly: OwinStartup(typeof(AS.MVCDemo.Startup))]
+[assembly: OwinStartup(typeof(BHAS.Startup))]
 
-namespace AS.MVCDemo
+namespace BHAS
 {
     public class Startup
     {
@@ -603,7 +603,7 @@ public class ApplicationRoleManager : RoleManager&lt;IdentityRole&gt;
         <div class="step-box">
             <strong>Pozovi iz Global.asax.cs</strong> u <code>Application_Start()</code>:
         </div>
-        <pre><code>using AS.MVCDemo.Infrastructure;
+        <pre><code>using BHAS.Infrastructure;
 // ...
 protected void Application_Start()
 {
@@ -1134,7 +1134,7 @@ public ActionResult Edit(Employee model)
         <div class="summary-card">
             <h4>Sažetak poglavlja 9</h4>
             <ul>
-                <li>Dodati 7 NuGet paketa (Identity + OWIN) u AS.MVCDemo</li>
+                <li>Dodati 7 NuGet paketa (Identity + OWIN) u BHAS</li>
                 <li>Kreiran <code>ApplicationUser</code> s poljem <code>DepartmentID</code></li>
                 <li>Kreiran <code>ApplicationDbContext</code> za odvojenu bazu <code>StateStatisticsAuthDB</code></li>
                 <li>OWIN <code>Startup.cs</code> konfigurira cookie middleware i per-request factory</li>
@@ -1183,7 +1183,7 @@ public ActionResult Edit(Employee model)
                         <li><code>Controllers/ReportController.cs</code></li>
                         <li><code>Controllers/StoredProcController.cs</code></li>
                         <li>Svi Index View-ovi (role-based dugmad)</li>
-                        <li><code>AS.MVCDemo.csproj</code></li>
+                        <li><code>BHAS.csproj</code></li>
                     </ul>
                 </div>
             </div>
