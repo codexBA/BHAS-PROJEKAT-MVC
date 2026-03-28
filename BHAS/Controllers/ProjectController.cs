@@ -91,8 +91,7 @@ namespace AS.MVCDemo.Controllers
                     return HttpNotFound();
 
                 if (!CanEditDepartment(project.DepartmentID))
-                    return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
-                        "Nemaš pristup projektima iz ovog odjela.");
+                    return DepartmentAccessDenied();
 
                 PopulateDepartmentsSelectList(db, project.DepartmentID);
                 ViewBag.StatusList = new SelectList(StatusValues, project.Status);
@@ -112,8 +111,7 @@ namespace AS.MVCDemo.Controllers
                 {
                     var existing = db.Projects.Find(model.ProjectID);
                     if (existing != null && !CanEditDepartment(existing.DepartmentID))
-                        return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
-                            "Nemaš pristup projektima iz ovog odjela.");
+                        return DepartmentAccessDenied();
 
                     model.ModifiedDate = DateTime.Now;
                     db.Entry(model).State = EntityState.Modified;

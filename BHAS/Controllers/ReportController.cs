@@ -98,8 +98,7 @@ namespace AS.MVCDemo.Controllers
                     return HttpNotFound();
 
                 if (!CanEditDepartment(report.DepartmentID))
-                    return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
-                        "Nemaš pristup izvještajima iz ovog odjela.");
+                    return DepartmentAccessDenied();
 
                 PopulateDepartmentsSelectList(db, report.DepartmentID);
                 PopulateEmployeesSelectList(db, report.CreatedBy);
@@ -121,8 +120,7 @@ namespace AS.MVCDemo.Controllers
                 {
                     var existing = db.Reports.Find(model.ReportID);
                     if (existing != null && !CanEditDepartment(existing.DepartmentID))
-                        return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
-                            "Nemaš pristup izvještajima iz ovog odjela.");
+                        return DepartmentAccessDenied();
 
                     db.Entry(model).State = EntityState.Modified;
                     db.SaveChanges();

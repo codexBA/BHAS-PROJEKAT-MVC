@@ -11,6 +11,12 @@
                 <h5 class="mb-0">Prijava u sistem</h5>
             </div>
             <div class="card-body">
+                @if (TempData["AccessError"] != null)
+                {
+                    <div class="alert alert-warning">
+                        <strong>Pristup odbijen:</strong> @TempData["AccessError"]
+                    </div>
+                }
                 @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl },
                     FormMethod.Post, new { @class = "form" }))
                 {
@@ -38,7 +44,7 @@
                 }
             </div>
             <div class="card-footer text-muted small">
-                Demo nalog: <code>admin@demo.com</code> / <code>Admin@123!</code>
+                Demo nalog: <code>admin@bhas.ba</code> / <code>Admin123</code>
             </div>
         </div>
     </div>

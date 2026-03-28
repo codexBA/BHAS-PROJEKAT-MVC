@@ -23,5 +23,11 @@ namespace BHAS.Controllers
                 return appUser != null && appUser.DepartmentID == entityDepartmentId;
             }
         }
+
+        protected ActionResult DepartmentAccessDenied()
+        {
+            TempData["AccessError"] = "Nemate pravo pristupa ovom odjelu.";
+            return RedirectToAction("Login", "Account");
+        }
     }
 }

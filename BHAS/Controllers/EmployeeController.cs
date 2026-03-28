@@ -73,8 +73,7 @@ namespace BHAS.Controllers
                     return HttpNotFound();
 
                 if (!CanEditDepartment(employee.DepartmentID))
-                    return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
-                        "Nemaš pristup zaposlenicima iz ovog odjela.");
+                    return DepartmentAccessDenied();
 
                 PopulateDepartmentSelect(db, employee.DepartmentID);
                 return View(employee);
@@ -92,8 +91,7 @@ namespace BHAS.Controllers
                 {
                     var existing = db.Employees.Find(model.EmployeeID);
                     if (existing != null && !CanEditDepartment(existing.DepartmentID))
-                        return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
-                            "Nemaš pristup zaposlenicima iz ovog odjela.");
+                        return DepartmentAccessDenied();
 
                     model.ModifiedDate = DateTime.Now;
                     db.Entry(model).State = System.Data.Entity.EntityState.Modified;

@@ -195,6 +195,17 @@
     <Content Include="Content\bootstrap.min.css" />
     <Content Include="Content\bootstrap.rtl.css" />
     <Content Include="Content\bootstrap.rtl.min.css" />
+    <Content Include="docs\guide\00-introduction.html" />
+    <Content Include="docs\guide\01-layout-and-home.html" />
+    <Content Include="docs\guide\02-department.html" />
+    <Content Include="docs\guide\03-employee.html" />
+    <Content Include="docs\guide\04-project.html" />
+    <Content Include="docs\guide\05-region.html" />
+    <Content Include="docs\guide\06-economic-data.html" />
+    <Content Include="docs\guide\07-report.html" />
+    <Content Include="docs\guide\08-stored-procedures.html" />
+    <Content Include="docs\guide\09-access-management.html" />
+    <Content Include="docs\guide\index.html" />
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
     <Content Include="Content\Site.css" />
