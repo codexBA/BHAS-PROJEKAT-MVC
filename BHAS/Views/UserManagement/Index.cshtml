@@ -1,0 +1,62 @@
+﻿@model List<BHAS.Models.UserListItem>
+@{
+    ViewBag.Title = "Upravljanje korisnicima";
+}
+
+<h2>Upravljanje korisnicima</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<p>
+    @Html.ActionLink("Novi korisnik", "Create", null, new { @class = "btn btn-success" })
+</p>
+
+<table class="table table-bordered table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Ime i prezime</th>
+            <th>Email</th>
+            <th>Uloga</th>
+            <th>Odjel</th>
+            <th>Akcije</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.FullName</td>
+                <td>@item.Email</td>
+                <td>
+                    @foreach (var role in item.Roles)
+                    {
+                        string color = role == "SuperAdmin" ? "danger"
+                                     : role == "Admin" ? "warning"
+                                     : role == "Editor" ? "primary"
+                                     : "secondary";
+                        <span class="badge bg-@color">@role</span>
+                    }
+                </td>
+                <td>@(item.DepartmentName ?? "-")</td>
+                <td>
+                    @Html.ActionLink("Uredi", "Edit", new { id = item.Id },
+                        new { @class = "btn btn-sm btn-warning" })
+
+                    @using (Html.BeginForm("Delete", "UserManagement", FormMethod.Post,
+                        new { style = "display:inline" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <button type="submit" class="btn btn-sm btn-danger"
+                                onclick="return confirm('Obrisati korisnika @item.FullName?')">
+                            Obriši
+                        </button>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

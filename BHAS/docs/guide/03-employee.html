@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="bs">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Poglavlje 3 - EmployeeController</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: Consolas, 'Courier New', monospace;
+        }
+
+        .concept-box {
+            background: #e8f4fd;
+            border-left: 4px solid #0d6efd;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .step-box {
+            background: #d1e7dd;
+            border-left: 4px solid #198754;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .nav-chapter {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-chapter a {
+            text-decoration: none;
+            padding: 8px 12px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .nav-chapter a:hover {
+            background: #e9ecef;
+        }
+
+        .nav-chapter a.active {
+            font-weight: bold;
+            background: #0d6efd;
+            color: white;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="nav-chapter">
+        <div class="container">
+            <a href="00-introduction.html">0 - Uvod</a>
+            <a href="01-layout-and-home.html">1 - Layout i Home</a>
+            <a href="02-department.html">2 - Department</a>
+            <a href="03-employee.html" class="active">3 - Employee</a>
+            <a href="04-project.html">4 - Project</a>
+            <a href="05-region.html">5 - Region</a>
+            <a href="06-economic-data.html">6 - EconomicData</a>
+            <a href="07-report.html">7 - Report</a>
+            <a href="08-stored-procedures.html">8 - Stored Procedure</a>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5">
+        <h1>Poglavlje 3: EmployeeController</h1>
+        <p class="lead">U ovom poglavlju kreirat ćemo kompletni CRUD za zaposlenike. Obrazac je isti kao za Department,
+            ali s više polja u formi i dropdown listom za odabir odjela. Ovo poglavlje učvršćuje koncepte iz prethodnog
+            poglavlja.</p>
+
+        <div class="alert alert-info">
+            <strong>Sadržaj poglavlja:</strong>
+            <a href="#controller">Controller</a> |
+            <a href="#index-view">Index View</a> |
+            <a href="#details-view">Details View</a> |
+            <a href="#create-view">Create View</a> |
+            <a href="#edit-view">Edit View</a> |
+            <a href="#delete-view">Delete View</a>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="controller">Korak 1: Kreiranje EmployeeController</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Controllers/EmployeeController.cs</code><br />
+            Desni klik na folder <code>Controllers</code> &rarr; Add &rarr; Controller &rarr; MVC 5 Controller - Empty
+            &rarr; ime: <code>EmployeeController</code>
+        </div>
+
+        <pre><code>using BHAS.DbFirst;
+using System;
+using System.Data.Entity;
+using System.Linq;
+using System.Web.Mvc;
+
+namespace AS.MVCDemo.Controllers
+{
+    public class EmployeeController : Controller
+    {
+        // GET: Employee
+        public ActionResult Index()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var employees = db.Employees
+                    .OrderBy(x =&gt; x.LastName)
+                    .ThenBy(x =&gt; x.FirstName)
+                    .ToList();
+                return View(employees);
+            }
+        }
+
+        // GET: Employee/Details/5
+        public ActionResult Details(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var employee = db.Employees
+                    .Include("Department")
+                    .FirstOrDefault(x =&gt; x.EmployeeID == id);
+
+                if (employee == null)
+                    return HttpNotFound();
+
+                return View(employee);
+            }
+        }
+
+        // GET: Employee/Create
+        public ActionResult Create()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, null);
+                return View();
+            }
+        }
+
+        // POST: Employee/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Create([Bind(Include = "FirstName,LastName,JMBG,DepartmentID,Position,Salary,HireDate,Email")] Employee model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    model.CreatedDate = DateTime.Now;
+                    model.ModifiedDate = DateTime.Now;
+                    db.Employees.Add(model);
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
+            }
+
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, model.DepartmentID);
+            }
+            return View(model);
+        }
+
+        // GET: Employee/Edit/5
+        public ActionResult Edit(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var employee = db.Employees.Find(id);
+                if (employee == null)
+                    return HttpNotFound();
+
+                PopulateDepartmentsSelectList(db, employee.DepartmentID);
+                return View(employee);
+            }
+        }
+
+        // POST: Employee/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit([Bind(Include = "EmployeeID,FirstName,LastName,JMBG,DepartmentID,Position,Salary,HireDate,Email")] Employee model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    model.ModifiedDate = DateTime.Now;
+                    db.Entry(model).State = EntityState.Modified;
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
+            }
+
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, model.DepartmentID);
+            }
+            return View(model);
+        }
+
+        // GET: Employee/Delete/5
+        public ActionResult Delete(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var employee = db.Employees
+                    .Include("Department")
+                    .FirstOrDefault(x =&gt; x.EmployeeID == id);
+
+                if (employee == null)
+                    return HttpNotFound();
+
+                return View(employee);
+            }
+        }
+
+        // POST: Employee/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public ActionResult DeleteConfirmed(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var employee = db.Employees.Find(id);
+                if (employee == null)
+                    return HttpNotFound();
+
+                db.Employees.Remove(employee);
+                db.SaveChanges();
+                return RedirectToAction("Index");
+            }
+        }
+
+        private void PopulateDepartmentsSelectList(StateStatisticsDBEntities db, int? selectedDepartmentId)
+        {
+            var departments = db.Departments
+                .OrderBy(x =&gt; x.DepartmentName)
+                .ToList();
+
+            ViewBag.DepartmentID = new SelectList(departments, "DepartmentID", "DepartmentName", selectedDepartmentId);
+        }
+    }
+}</code></pre>
+
+        <h3>Novi koncepti u ovom kontroleru</h3>
+
+        <div class="concept-box">
+            <strong>Include sa stringom vs lambda izraz:</strong><br />
+            U DepartmentController-u smo koristili: <code>.Include(x =&gt; x.Employees)</code> (lambda)<br />
+            Ovdje koristimo: <code>.Include("Department")</code> (string)<br /><br />
+            Oba načina rade isto &mdash; učitavaju povezani entitet zajedno s glavnim. Lambda pristup daje IntelliSense
+            podršku i provjeru u compile-time, dok string pristup ne daje.<br /><br />
+            <strong>Preporuka:</strong> Koristite lambda pristup kad god je moguće jer IDE javlja grešku ako pogrešno
+            napišete ime.
+        </div>
+
+        <div class="concept-box">
+            <strong>PopulateDepartmentsSelectList:</strong><br />
+            Ova metoda je slična <code>PopulateManagersSelectList</code> iz DepartmentController-a, ali popunjava
+            dropdown za odabir odjela umjesto menadžera.<br />
+            <code>ViewBag.DepartmentID = new SelectList(departments, "DepartmentID", "DepartmentName", selectedDepartmentId)</code><br />
+            Parametri SelectList konstruktora: kolekcija, polje za value, polje za prikaz, trenutno odabrana vrijednost.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="index-view">Korak 2: Index View (Lista zaposlenika)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Employee/Index.cshtml</code><br />
+            Kreirajte folder <code>Views/Employee/</code>, zatim dodajte <code>Index.cshtml</code>.
+        </div>
+
+        <pre><code>@model List&lt;BHAS.DbFirst.Employee&gt;
+@{
+    ViewBag.Title = "Zaposlenici";
+}
+
+&lt;h2&gt;Zaposlenici&lt;/h2&gt;
+&lt;p&gt;
+    @Html.ActionLink("Kreiraj novog zaposlenika", "Create", null, new { @class = "btn btn-primary" })
+&lt;/p&gt;
+
+&lt;table class="table table-bordered table-striped table-hover"&gt;
+    &lt;thead class="table-dark"&gt;
+        &lt;tr&gt;
+            &lt;th&gt;Ime&lt;/th&gt;
+            &lt;th&gt;Prezime&lt;/th&gt;
+            &lt;th&gt;JMBG&lt;/th&gt;
+            &lt;th&gt;Pozicija&lt;/th&gt;
+            &lt;th&gt;Plata&lt;/th&gt;
+            &lt;th&gt;Datum zaposlenja&lt;/th&gt;
+            &lt;th&gt;Akcije&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        @foreach (var item in Model)
+        {
+            &lt;tr&gt;
+                &lt;td&gt;@item.FirstName&lt;/td&gt;
+                &lt;td&gt;@item.LastName&lt;/td&gt;
+                &lt;td&gt;@item.JMBG&lt;/td&gt;
+                &lt;td&gt;@item.Position&lt;/td&gt;
+                &lt;td&gt;@item.Salary.ToString("N2")&lt;/td&gt;
+                &lt;td&gt;@item.HireDate.ToString("dd.MM.yyyy")&lt;/td&gt;
+                &lt;td&gt;
+                    @Html.ActionLink("Detalji", "Details", new { id = item.EmployeeID }, new { @class = "btn btn-sm btn-info" })
+                    @Html.ActionLink("Uredi", "Edit", new { id = item.EmployeeID }, new { @class = "btn btn-sm btn-warning" })
+                    @Html.ActionLink("Obriši", "Delete", new { id = item.EmployeeID }, new { @class = "btn btn-sm btn-danger" })
+                &lt;/td&gt;
+            &lt;/tr&gt;
+        }
+    &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+        <div class="concept-box">
+            <strong>Formatiranje datuma:</strong><br />
+            <code>@item.HireDate.ToString("dd.MM.yyyy")</code> formatira datum kao npr. "15.03.2024".<br />
+            Format tokeni: <code>dd</code> = dan (2 cifre), <code>MM</code> = mjesec (2 cifre), <code>yyyy</code> =
+            godina (4 cifre).
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="details-view">Korak 3: Details View (Detalji zaposlenika)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Employee/Details.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Employee
+@{
+    ViewBag.Title = "Detalji zaposlenika";
+}
+
+&lt;h2&gt;Detalji zaposlenika&lt;/h2&gt;
+
+&lt;div class="card" style="max-width: 600px;"&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row"&gt;
+            &lt;dt class="col-sm-4"&gt;Ime&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.FirstName&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Prezime&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.LastName&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;JMBG&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.JMBG&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Odjel&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;
+                @(Model.Department != null ? Model.Department.DepartmentName : "-")
+            &lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Pozicija&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.Position&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Plata&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.Salary.ToString("N2")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Datum zaposlenja&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.HireDate.ToString("dd.MM.yyyy")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Email&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(string.IsNullOrEmpty(Model.Email) ? "-" : Model.Email)&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Datum kreiranja&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(Model.CreatedDate.HasValue ? Model.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm") : "-")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Datum izmjene&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(Model.ModifiedDate.HasValue ? Model.ModifiedDate.Value.ToString("dd.MM.yyyy HH:mm") : "-")&lt;/dd&gt;
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div style="margin-top: 15px;"&gt;
+    @Html.ActionLink("Uredi", "Edit", new { id = Model.EmployeeID }, new { @class = "btn btn-warning" })
+    @Html.ActionLink("Nazad na listu", "Index", null, new { @class = "btn btn-secondary" })
+&lt;/div&gt;</code></pre>
+
+        <div class="concept-box">
+            <strong>Rad s nullable vrijednostima u Razor-u:</strong><br />
+            <code>@(Model.Department != null ? Model.Department.DepartmentName : "-")</code><br />
+            Ovo je ternarni operator: ako Department nije null, prikaži ime; inače prikaži "-".<br /><br />
+            <code>@(string.IsNullOrEmpty(Model.Email) ? "-" : Model.Email)</code><br />
+            Provjerava da li je string prazan ili null.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="create-view">Korak 4: Create View (Kreiranje zaposlenika)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Employee/Create.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Employee
+@{
+    ViewBag.Title = "Kreiraj zaposlenika";
+}
+
+&lt;h2&gt;Kreiraj novog zaposlenika&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    &lt;div class="form-horizontal" style="max-width: 600px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.FirstName, "Ime", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.FirstName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.FirstName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.LastName, "Prezime", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.LastName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.LastName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.JMBG, "JMBG", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.JMBG, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.JMBG, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.DepartmentID, "Odjel", new { @class = "control-label" })
+            @Html.DropDownList("DepartmentID", null, "-- odaberi departman --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.DepartmentID, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Position, "Pozicija", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.Position, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Position, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Salary, "Plata", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.Salary, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Salary, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.HireDate, "Datum zaposlenja", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.HireDate, new { htmlAttributes = new { @class = "form-control", type = "date" } })
+            @Html.ValidationMessageFor(m =&gt; m.HireDate, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Email, "Email", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.Email, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Email, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mt-3"&gt;
+            &lt;input type="submit" value="Sačuvaj" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Novi koncept &mdash; type = "date" za datum:</strong><br />
+            <code>@Html.EditorFor(m =&gt; m.HireDate, new { htmlAttributes = new { @class = "form-control", type = "date" } })</code><br /><br />
+            Dodavanjem <code>type = "date"</code> u htmlAttributes, browser prikazuje nativni date picker kontrolu
+            umjesto običnog tekstualnog polja. Ovo značajno poboljšava korisničko iskustvo jer korisnik ne mora ručno
+            upisivati format datuma.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="edit-view">Korak 5: Edit View (Uređivanje zaposlenika)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Employee/Edit.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Employee
+@{
+    ViewBag.Title = "Uredi zaposlenika";
+}
+
+&lt;h2&gt;Uredi zaposlenika&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    &lt;div class="form-horizontal" style="max-width: 600px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        @Html.HiddenFor(m =&gt; m.EmployeeID)
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.FirstName, "Ime", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.FirstName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.FirstName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.LastName, "Prezime", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.LastName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.LastName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.JMBG, "JMBG", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.JMBG, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.JMBG, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.DepartmentID, "Odjel", new { @class = "control-label" })
+            @Html.DropDownList("DepartmentID", null, "-- odaberi departman --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.DepartmentID, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Position, "Pozicija", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.Position, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Position, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Salary, "Plata", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.Salary, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Salary, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.HireDate, "Datum zaposlenja", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.HireDate, new { htmlAttributes = new { @class = "form-control", type = "date" } })
+            @Html.ValidationMessageFor(m =&gt; m.HireDate, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Email, "Email", new { @class = "control-label" })
+            @Html.EditorFor(m =&gt; m.Email, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Email, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+
+        &lt;div class="form-group mt-3"&gt;
+            &lt;input type="submit" value="Sačuvaj izmjene" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}</code></pre>
+
+        <div class="warning-box">
+            <strong>Podsjetnik:</strong> Ne zaboravite <code>@Html.HiddenFor(m =&gt; m.EmployeeID)</code> na početku
+            forme! Bez toga, Edit POST akcija neće znati koji zapis treba ažurirati.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="delete-view">Korak 6: Delete View (Potvrda brisanja)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Employee/Delete.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Employee
+@{
+    ViewBag.Title = "Obriši zaposlenika";
+}
+
+&lt;h2&gt;Potvrda brisanja&lt;/h2&gt;
+
+&lt;div class="alert alert-warning"&gt;
+    &lt;strong&gt;Upozorenje!&lt;/strong&gt; Da li ste sigurni da želite obrisati ovog zaposlenika?
+&lt;/div&gt;
+
+&lt;div class="card" style="max-width: 500px;"&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row"&gt;
+            &lt;dt class="col-sm-4"&gt;Ime&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.FirstName&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Prezime&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.LastName&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;JMBG&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.JMBG&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Pozicija&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.Position&lt;/dd&gt;
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+@using (Html.BeginForm("Delete", "Employee", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="margin-top: 15px;"&gt;
+        &lt;input type="submit" value="Da, obriši" class="btn btn-danger" /&gt;
+        @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+    &lt;/div&gt;
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Uočite razliku:</strong> Employee Delete <strong>nema</strong> try-catch blok u kontroleru, za
+            razliku od Department-a. To je zato što zaposlenici obično nemaju zavisne zapise koji bi spriječili
+            brisanje. Department ima zaposlenike koji zavise od njega, pa brisanje može baciti grešku.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Šta ste naučili u ovom poglavlju</h2>
+        <ul>
+            <li><strong>Ponavljanje CRUD obrasca</strong> &mdash; Isti obrazac kao Department, ali s više polja</li>
+            <li><strong>Include sa stringom</strong> &mdash; <code>.Include("Department")</code> kao alternativa lambda
+                izrazu</li>
+            <li><strong>Date picker</strong> &mdash; <code>type = "date"</code> za nativni browser date picker</li>
+            <li><strong>Formatiranje datuma</strong> &mdash; <code>ToString("dd.MM.yyyy")</code></li>
+            <li><strong>Nullable provjere</strong> &mdash; <code>HasValue</code>, <code>string.IsNullOrEmpty()</code>,
+                ternarni operator</li>
+            <li><strong>Dropdown za FK</strong> &mdash; <code>PopulateDepartmentsSelectList</code> +
+                <code>DropDownList</code></li>
+        </ul>
+
+        <div class="d-flex justify-content-between mt-4 mb-5">
+            <a href="02-department.html" class="btn btn-outline-secondary btn-lg">&laquo; Prethodno: Department</a>
+            <a href="04-project.html" class="btn btn-primary btn-lg">Sljedeće: ProjectController &raquo;</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

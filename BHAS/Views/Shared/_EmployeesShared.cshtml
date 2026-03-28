@@ -28,9 +28,12 @@
                                         new { id = emp.EmployeeID },
                                         new { @class = "btn btn-sm btn-info" })
 
-                    @Html.ActionLink("Uredi", "Edit", "Employee",
-                                        new { id = emp.EmployeeID },
-                                        new { @class = "btn btn-sm btn-primary" })
+                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Editor"))
+                    {
+                        @Html.ActionLink("Uredi", "Edit", "Employee",
+                                            new { id = emp.EmployeeID },
+                                            new { @class = "btn btn-sm btn-primary" })
+                    }
                 </td>
             </tr>
         }

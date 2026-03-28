@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="bs">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Poglavlje 6 - EconomicDataController</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: Consolas, 'Courier New', monospace;
+        }
+
+        .concept-box {
+            background: #e8f4fd;
+            border-left: 4px solid #0d6efd;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .step-box {
+            background: #d1e7dd;
+            border-left: 4px solid #198754;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .nav-chapter {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-chapter a {
+            text-decoration: none;
+            padding: 8px 12px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .nav-chapter a:hover {
+            background: #e9ecef;
+        }
+
+        .nav-chapter a.active {
+            font-weight: bold;
+            background: #0d6efd;
+            color: white;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="nav-chapter">
+        <div class="container">
+            <a href="00-introduction.html">0 - Uvod</a>
+            <a href="01-layout-and-home.html">1 - Layout i Home</a>
+            <a href="02-department.html">2 - Department</a>
+            <a href="03-employee.html">3 - Employee</a>
+            <a href="04-project.html">4 - Project</a>
+            <a href="05-region.html">5 - Region</a>
+            <a href="06-economic-data.html" class="active">6 - EconomicData</a>
+            <a href="07-report.html">7 - Report</a>
+            <a href="08-stored-procedures.html">8 - Stored Procedure</a>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5">
+        <h1>Poglavlje 6: EconomicDataController</h1>
+        <p class="lead">Ovaj kontroler je najnapredniji u projektu. Uvodi filtriranje podataka po regiji, GET forme za
+            filtriranje, cross-controller preusmjeravanje i predefinisane default vrijednosti u modelu.</p>
+
+        <div class="alert alert-info">
+            <strong>Novi koncepti u ovom poglavlju:</strong>
+            <ul class="mb-0">
+                <li>Opcioni parametar u Index akciji za filtriranje</li>
+                <li>IQueryable i dinamičko komponovanje upita</li>
+                <li>Html.BeginForm sa FormMethod.Get za filter formu</li>
+                <li>RedirectToAction na drugi kontroler i akciju</li>
+                <li>Pre-populiranje modela s default vrijednostima</li>
+            </ul>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="controller">Korak 1: Kreiranje EconomicDataController</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Controllers/EconomicDataController.cs</code>
+        </div>
+
+        <pre><code>using BHAS.DbFirst;
+using System;
+using System.Data.Entity;
+using System.Linq;
+using System.Web.Mvc;
+
+namespace AS.MVCDemo.Controllers
+{
+    public class EconomicDataController : Controller
+    {
+        // GET: EconomicData
+        public ActionResult Index(int? regionId)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var query = db.EconomicDatas.Include(x =&gt; x.Region).AsQueryable();
+
+                if (regionId.HasValue)
+                {
+                    query = query.Where(x =&gt; x.RegionID == regionId.Value);
+                    ViewBag.FilterRegion = db.Regions.Find(regionId.Value)?.RegionName;
+                }
+
+                var data = query
+                    .OrderByDescending(x =&gt; x.Year)
+                    .ThenBy(x =&gt; x.Region.RegionName)
+                    .ToList();
+
+                PopulateRegionsSelectList(db, regionId);
+                return View(data);
+            }
+        }
+
+        // GET: EconomicData/Details/5
+        public ActionResult Details(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var item = db.EconomicDatas
+                    .Include(x =&gt; x.Region)
+                    .FirstOrDefault(x =&gt; x.DataID == id);
+
+                if (item == null)
+                    return HttpNotFound();
+
+                return View(item);
+            }
+        }
+
+        // GET: EconomicData/Create
+        public ActionResult Create(int? regionId)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateRegionsSelectList(db, regionId);
+                var model = new EconomicData
+                {
+                    Year = DateTime.Now.Year,
+                    RegionID = regionId ?? 0
+                };
+                return View(model);
+            }
+        }
+
+        // POST: EconomicData/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Create([Bind(Include = "RegionID,Year,GDP,UnemploymentRate,AverageSalary,InflationRate,RecordedDate")] EconomicData model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    model.RecordedDate = DateTime.Now;
+                    db.EconomicDatas.Add(model);
+                    db.SaveChanges();
+                    return RedirectToAction("Details", "Region", new { id = model.RegionID });
+                }
+            }
+
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateRegionsSelectList(db, model.RegionID);
+            }
+            return View(model);
+        }
+
+        // GET: EconomicData/Edit/5
+        public ActionResult Edit(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var item = db.EconomicDatas
+                    .Include(x =&gt; x.Region)
+                    .FirstOrDefault(x =&gt; x.DataID == id);
+
+                if (item == null)
+                    return HttpNotFound();
+
+                PopulateRegionsSelectList(db, item.RegionID);
+                return View(item);
+            }
+        }
+
+        // POST: EconomicData/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit([Bind(Include = "DataID,RegionID,Year,GDP,UnemploymentRate,AverageSalary,InflationRate,RecordedDate")] EconomicData model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    db.Entry(model).State = EntityState.Modified;
+                    db.SaveChanges();
+                    return RedirectToAction("Details", "Region", new { id = model.RegionID });
+                }
+            }
+
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateRegionsSelectList(db, model.RegionID);
+            }
+            return View(model);
+        }
+
+        // GET: EconomicData/Delete/5
+        public ActionResult Delete(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var item = db.EconomicDatas
+                    .Include(x =&gt; x.Region)
+                    .FirstOrDefault(x =&gt; x.DataID == id);
+
+                if (item == null)
+                    return HttpNotFound();
+
+                return View(item);
+            }
+        }
+
+        // POST: EconomicData/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public ActionResult DeleteConfirmed(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var item = db.EconomicDatas.Find(id);
+                if (item == null)
+                    return HttpNotFound();
+
+                int regionId = item.RegionID;
+                db.EconomicDatas.Remove(item);
+                db.SaveChanges();
+                return RedirectToAction("Details", "Region", new { id = regionId });
+            }
+        }
+
+        private void PopulateRegionsSelectList(StateStatisticsDBEntities db, int? selectedId)
+        {
+            var regions = db.Regions.OrderBy(x =&gt; x.RegionName).ToList();
+            ViewBag.RegionID = new SelectList(regions, "RegionID", "RegionName", selectedId);
+        }
+    }
+}</code></pre>
+
+        <h3>Detaljno objašnjenje novih koncepata</h3>
+
+        <h4>1. Opcioni parametar za filtriranje</h4>
+        <div class="concept-box">
+            <code>public ActionResult Index(int? regionId)</code><br /><br />
+            Parametar <code>regionId</code> je <code>int?</code> (nullable). Ako korisnik pristupi URL-u
+            <code>/EconomicData</code>, regionId je null i prikazuju se svi podaci. Ako pristupi
+            <code>/EconomicData?regionId=3</code>, prikazuju se samo podaci za regiju 3.<br /><br />
+            MVC automatski mapira query string parametre na parametre metode po imenu.
+        </div>
+
+        <h4>2. Dinamičko komponovanje upita (IQueryable)</h4>
+        <div class="concept-box">
+            <pre><code>var query = db.EconomicDatas.Include(x =&gt; x.Region).AsQueryable();
+
+if (regionId.HasValue)
+{
+    query = query.Where(x =&gt; x.RegionID == regionId.Value);
+}</code></pre>
+            <code>.AsQueryable()</code> osigurava da radimo s <code>IQueryable</code> interfejsom. Upit se <strong>ne
+                izvršava</strong> u bazi dok ne pozovemo <code>.ToList()</code>.<br /><br />
+            Ovo nam omogućava da <strong>dinamički dodajemo</strong> Where uvjete. Upit se gradi u memoriji, a šalje
+            bazi tek na kraju. Ovo je efikasnije od dohvaćanja svih podataka pa filtriranja u C#.
+        </div>
+
+        <h4>3. Cross-controller RedirectToAction</h4>
+        <div class="concept-box">
+            <code>return RedirectToAction("Details", "Region", new { id = model.RegionID });</code><br /><br />
+            Nakon uspješnog kreiranja/uređivanja ekonomskog podatka, ne preusmjeravamo na EconomicData/Index nego na
+            <strong>Region/Details</strong>. Ovo je logično jer korisnik obično dolazi sa stranice detalja regije i želi
+            se tamo vratiti.<br /><br />
+            Parametri: akcija, kontroler, route values.
+        </div>
+
+        <h4>4. Pre-populiranje modela</h4>
+        <div class="concept-box">
+            <pre><code>var model = new EconomicData
+{
+    Year = DateTime.Now.Year,
+    RegionID = regionId ?? 0
+};</code></pre>
+            Umjesto praznog View-a, kreiramo model s default vrijednostima. Godina se automatski postavlja na tekuću
+            godinu, a RegionID na proslijeđeni regionId (ili 0 ako nije proslijeđen). Ovo poboljšava korisničko
+            iskustvo.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 2: Index View s filterom</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/EconomicData/Index.cshtml</code><br />
+            Kreirajte folder <code>Views/EconomicData/</code>, zatim dodajte <code>Index.cshtml</code>.
+        </div>
+
+        <pre><code>@model List&lt;BHAS.DbFirst.EconomicData&gt;
+@{
+    ViewBag.Title = "Ekonomski podaci";
+}
+
+&lt;h2&gt;Ekonomski podaci&lt;/h2&gt;
+
+&lt;div class="row mb-3"&gt;
+    &lt;div class="col-md-4"&gt;
+        @using (Html.BeginForm("Index", "EconomicData", FormMethod.Get))
+        {
+            &lt;div class="input-group"&gt;
+                @Html.DropDownList("regionId", (SelectList)ViewBag.RegionID, "-- sve regije --", new { @class = "form-control" })
+                &lt;button type="submit" class="btn btn-outline-secondary"&gt;Filtriraj&lt;/button&gt;
+            &lt;/div&gt;
+        }
+    &lt;/div&gt;
+    &lt;div class="col-md-4"&gt;
+        @Html.ActionLink("Dodaj novi unos", "Create", null, new { @class = "btn btn-primary" })
+    &lt;/div&gt;
+&lt;/div&gt;
+
+@if (ViewBag.FilterRegion != null)
+{
+    &lt;div class="alert alert-info"&gt;Filtrirano po regiji: &lt;strong&gt;@ViewBag.FilterRegion&lt;/strong&gt;&lt;/div&gt;
+}
+
+&lt;table class="table table-bordered table-striped table-hover"&gt;
+    &lt;thead class="table-dark"&gt;
+        &lt;tr&gt;
+            &lt;th&gt;Regija&lt;/th&gt;
+            &lt;th&gt;Godina&lt;/th&gt;
+            &lt;th&gt;BDP (mil.)&lt;/th&gt;
+            &lt;th&gt;Nezaposlenost (%)&lt;/th&gt;
+            &lt;th&gt;Prosječna plata&lt;/th&gt;
+            &lt;th&gt;Inflacija (%)&lt;/th&gt;
+            &lt;th&gt;Akcije&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        @foreach (var item in Model)
+        {
+            &lt;tr&gt;
+                &lt;td&gt;@(item.Region != null ? item.Region.RegionName : "-")&lt;/td&gt;
+                &lt;td&gt;@item.Year&lt;/td&gt;
+                &lt;td&gt;@(item.GDP.HasValue ? item.GDP.Value.ToString("N2") : "-")&lt;/td&gt;
+                &lt;td&gt;@(item.UnemploymentRate.HasValue ? item.UnemploymentRate.Value.ToString("N2") + "%" : "-")&lt;/td&gt;
+                &lt;td&gt;@(item.AverageSalary.HasValue ? item.AverageSalary.Value.ToString("N2") : "-")&lt;/td&gt;
+                &lt;td&gt;@(item.InflationRate.HasValue ? item.InflationRate.Value.ToString("N2") + "%" : "-")&lt;/td&gt;
+                &lt;td&gt;
+                    @Html.ActionLink("Detalji", "Details", new { id = item.DataID }, new { @class = "btn btn-sm btn-info" })
+                    @Html.ActionLink("Uredi", "Edit", new { id = item.DataID }, new { @class = "btn btn-sm btn-warning" })
+                    @Html.ActionLink("Obriši", "Delete", new { id = item.DataID }, new { @class = "btn btn-sm btn-danger" })
+                &lt;/td&gt;
+            &lt;/tr&gt;
+        }
+    &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+        <div class="concept-box">
+            <strong>GET forma za filtriranje:</strong><br />
+            <code>@using (Html.BeginForm("Index", "EconomicData", FormMethod.Get))</code><br /><br />
+            Za razliku od Create/Edit formi koje koriste POST, filter forma koristi <strong>GET</strong> metodu. To
+            znači da se parametri šalju kroz URL query string (npr. <code>/EconomicData?regionId=3</code>).<br /><br />
+            Prednosti GET forme za filtriranje:
+            <ul class="mb-0">
+                <li>Korisnik može bookmarkati filtriranu stranicu</li>
+                <li>Može koristiti browser-ov Back/Forward dugme</li>
+                <li>Može podijeliti link s filterom s drugima</li>
+                <li>Nema potrebe za AntiForgeryToken jer GET ne mijenja podatke</li>
+            </ul>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 3: Details View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/EconomicData/Details.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.EconomicData
+@{
+    ViewBag.Title = "Detalji ekonomskih podataka";
+}
+
+&lt;h2&gt;Ekonomski podaci &ndash; detalji&lt;/h2&gt;
+
+&lt;div class="card" style="max-width: 550px;"&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row"&gt;
+            &lt;dt class="col-sm-5"&gt;Regija&lt;/dt&gt;
+            &lt;dd class="col-sm-7"&gt;@(Model.Region != null ? Model.Region.RegionName : "-")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-5"&gt;Godina&lt;/dt&gt;
+            &lt;dd class="col-sm-7"&gt;@Model.Year&lt;/dd&gt;
+
+            &lt;dt class="col-sm-5"&gt;BDP (mil.)&lt;/dt&gt;
+            &lt;dd class="col-sm-7"&gt;@(Model.GDP.HasValue ? Model.GDP.Value.ToString("N2") : "-")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-5"&gt;Stopa nezaposlenosti (%)&lt;/dt&gt;
+            &lt;dd class="col-sm-7"&gt;@(Model.UnemploymentRate.HasValue ? Model.UnemploymentRate.Value.ToString("N2") + "%" : "-")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-5"&gt;Prosječna plata&lt;/dt&gt;
+            &lt;dd class="col-sm-7"&gt;@(Model.AverageSalary.HasValue ? Model.AverageSalary.Value.ToString("N2") : "-")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-5"&gt;Stopa inflacije (%)&lt;/dt&gt;
+            &lt;dd class="col-sm-7"&gt;@(Model.InflationRate.HasValue ? Model.InflationRate.Value.ToString("N2") + "%" : "-")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-5"&gt;Datum unosa&lt;/dt&gt;
+            &lt;dd class="col-sm-7"&gt;@(Model.RecordedDate.HasValue ? Model.RecordedDate.Value.ToString("dd.MM.yyyy") : "-")&lt;/dd&gt;
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div style="margin-top: 15px;"&gt;
+    @Html.ActionLink("Uredi", "Edit", new { id = Model.DataID }, new { @class = "btn btn-warning" })
+    @if (Model.Region != null)
+    {
+        @Html.ActionLink("Nazad na regiju", "Details", "Region", new { id = Model.RegionID }, new { @class = "btn btn-secondary" })
+    }
+    @Html.ActionLink("Svi ekonomski podaci", "Index", null, new { @class = "btn btn-outline-secondary" })
+&lt;/div&gt;</code></pre>
+
+        <div class="concept-box">
+            <strong>Uvjetni linkovi:</strong><br />
+            <code>@if (Model.Region != null) { @Html.ActionLink("Nazad na regiju", "Details", "Region", ...) }</code><br /><br />
+            Link "Nazad na regiju" se prikazuje samo ako Region postoji. Ovo je defanzivno programiranje &mdash; štitimo
+            se od greške ako je Region iz nekog razloga null.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 4: Create View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/EconomicData/Create.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.EconomicData
+@{
+    ViewBag.Title = "Dodaj ekonomske podatke";
+}
+
+&lt;h2&gt;Dodaj ekonomske podatke&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="max-width: 500px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        &lt;div class="form-group mb-3"&gt;
+            &lt;label&gt;Regija&lt;/label&gt;
+            @Html.DropDownList("RegionID", null, "-- odaberi regiju --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.RegionID, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Year, "Godina")
+            @Html.EditorFor(m =&gt; m.Year, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Year, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.GDP, "BDP (milioni)")
+            @Html.EditorFor(m =&gt; m.GDP, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.GDP, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.UnemploymentRate, "Stopa nezaposlenosti (%)")
+            @Html.EditorFor(m =&gt; m.UnemploymentRate, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.UnemploymentRate, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.AverageSalary, "Prosječna plata")
+            @Html.EditorFor(m =&gt; m.AverageSalary, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.AverageSalary, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.InflationRate, "Stopa inflacije (%)")
+            @Html.EditorFor(m =&gt; m.InflationRate, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.InflationRate, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="mt-3"&gt;
+            &lt;input type="submit" value="Sačuvaj" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Index", "Region", null, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }</code></pre>
+
+        <div class="concept-box">
+            <strong>Pre-populiran model:</strong><br />
+            Zapamtite da kontroler kreira model s <code>Year = DateTime.Now.Year</code>. Kada View primi ovaj model,
+            polje za godinu će automatski biti popunjeno s tekućom godinom. Ovo je jednostavan ali efektivan UX
+            poboljšanje.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 5: Edit View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/EconomicData/Edit.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.EconomicData
+@{
+    ViewBag.Title = "Uredi ekonomske podatke";
+}
+
+&lt;h2&gt;Uredi ekonomske podatke&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="max-width: 500px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        @Html.HiddenFor(m =&gt; m.DataID)
+
+        &lt;div class="form-group mb-3"&gt;
+            &lt;label&gt;Regija&lt;/label&gt;
+            @Html.DropDownList("RegionID", null, "-- odaberi regiju --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.RegionID, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Year, "Godina")
+            @Html.EditorFor(m =&gt; m.Year, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Year, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.GDP, "BDP (milioni)")
+            @Html.EditorFor(m =&gt; m.GDP, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.GDP, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.UnemploymentRate, "Stopa nezaposlenosti (%)")
+            @Html.EditorFor(m =&gt; m.UnemploymentRate, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.UnemploymentRate, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.AverageSalary, "Prosječna plata")
+            @Html.EditorFor(m =&gt; m.AverageSalary, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.AverageSalary, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.InflationRate, "Stopa inflacije (%)")
+            @Html.EditorFor(m =&gt; m.InflationRate, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.InflationRate, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="mt-3"&gt;
+            &lt;input type="submit" value="Sačuvaj izmjene" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Details", new { id = Model.DataID }, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }</code></pre>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 6: Delete View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/EconomicData/Delete.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.EconomicData
+@{
+    ViewBag.Title = "Obriši ekonomske podatke";
+}
+
+&lt;h2&gt;Potvrda brisanja&lt;/h2&gt;
+&lt;div class="alert alert-warning"&gt;&lt;strong&gt;Upozorenje!&lt;/strong&gt; Ova akcija je nepovratna.&lt;/div&gt;
+
+&lt;div class="card" style="max-width: 450px;"&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row"&gt;
+            &lt;dt class="col-sm-5"&gt;Regija&lt;/dt&gt;&lt;dd class="col-sm-7"&gt;@(Model.Region?.RegionName ?? "-")&lt;/dd&gt;
+            &lt;dt class="col-sm-5"&gt;Godina&lt;/dt&gt;&lt;dd class="col-sm-7"&gt;@Model.Year&lt;/dd&gt;
+            &lt;dt class="col-sm-5"&gt;BDP&lt;/dt&gt;&lt;dd class="col-sm-7"&gt;@(Model.GDP.HasValue ? Model.GDP.Value.ToString("N2") : "-")&lt;/dd&gt;
+            &lt;dt class="col-sm-5"&gt;Prosječna plata&lt;/dt&gt;&lt;dd class="col-sm-7"&gt;@(Model.AverageSalary.HasValue ? Model.AverageSalary.Value.ToString("N2") : "-")&lt;/dd&gt;
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+@using (Html.BeginForm("Delete", "EconomicData", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="margin-top: 15px;"&gt;
+        &lt;input type="submit" value="Da, obriši" class="btn btn-danger" /&gt;
+        @Html.ActionLink("Odustani", "Details", "Region", new { id = Model.RegionID }, new { @class = "btn btn-secondary" })
+    &lt;/div&gt;
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Pametan "Odustani" link:</strong><br />
+            <code>@Html.ActionLink("Odustani", "Details", "Region", new { id = Model.RegionID }, ...)</code><br /><br />
+            Umjesto da vodi nazad na EconomicData Index, link vodi na <strong>Region Details</strong>. Ovo je logično
+            jer su ekonomski podaci vezani za regiju. U kontroleru, nakon uspješnog brisanja, korisnik se također
+            preusmjerava na Region Details:
+            <code>return RedirectToAction("Details", "Region", new { id = regionId })</code>.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Šta ste naučili u ovom poglavlju</h2>
+        <ul>
+            <li><strong>Opcioni parametri</strong> &mdash; <code>int?</code> za opciono filtriranje u Index akciji</li>
+            <li><strong>IQueryable</strong> &mdash; Dinamičko komponovanje upita prije izvršavanja na bazi</li>
+            <li><strong>GET forma</strong> &mdash; <code>FormMethod.Get</code> za filter forme (parametri u URL-u)</li>
+            <li><strong>Cross-controller redirect</strong> &mdash;
+                <code>RedirectToAction("Details", "Region", new { id = ... })</code></li>
+            <li><strong>Default vrijednosti</strong> &mdash; Pre-populiranje modela za bolje korisničko iskustvo</li>
+            <li><strong>Pametan tok navigacije</strong> &mdash; "Odustani" i redirect vode tamo odakle je korisnik došao
+            </li>
+        </ul>
+
+        <div class="d-flex justify-content-between mt-4 mb-5">
+            <a href="05-region.html" class="btn btn-outline-secondary btn-lg">&laquo; Prethodno: Region</a>
+            <a href="07-report.html" class="btn btn-primary btn-lg">Sljedeće: ReportController &raquo;</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

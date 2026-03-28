@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="bs">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Poglavlje 5 - RegionController</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: Consolas, 'Courier New', monospace;
+        }
+
+        .concept-box {
+            background: #e8f4fd;
+            border-left: 4px solid #0d6efd;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .step-box {
+            background: #d1e7dd;
+            border-left: 4px solid #198754;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .nav-chapter {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-chapter a {
+            text-decoration: none;
+            padding: 8px 12px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .nav-chapter a:hover {
+            background: #e9ecef;
+        }
+
+        .nav-chapter a.active {
+            font-weight: bold;
+            background: #0d6efd;
+            color: white;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="nav-chapter">
+        <div class="container">
+            <a href="00-introduction.html">0 - Uvod</a>
+            <a href="01-layout-and-home.html">1 - Layout i Home</a>
+            <a href="02-department.html">2 - Department</a>
+            <a href="03-employee.html">3 - Employee</a>
+            <a href="04-project.html">4 - Project</a>
+            <a href="05-region.html" class="active">5 - Region</a>
+            <a href="06-economic-data.html">6 - EconomicData</a>
+            <a href="07-report.html">7 - Report</a>
+            <a href="08-stored-procedures.html">8 - Stored Procedure</a>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5">
+        <h1>Poglavlje 5: RegionController</h1>
+        <p class="lead">U ovom poglavlju kreirat ćemo CRUD za regije, uključujući AJAX partial view za ekonomske podatke
+            i cross-controller linkove. Region je sličan Department-u jer koristi partial view i AJAX, ali uvodi linkove
+            prema drugom kontroleru (EconomicData).</p>
+
+        <div class="alert alert-info">
+            <strong>Novi koncepti u ovom poglavlju:</strong>
+            <ul class="mb-0">
+                <li>Cross-controller ActionLink (linkovi na akcije u drugom kontroleru)</li>
+                <li>Partial view s akcijskim linkovima na drugi kontroler</li>
+                <li>CRUD bez dropdown-a (Region nema FK na drugi entitet)</li>
+            </ul>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="controller">Korak 1: Kreiranje RegionController</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Controllers/RegionController.cs</code>
+        </div>
+
+        <pre><code>using BHAS.DbFirst;
+using System;
+using System.Data.Entity;
+using System.Linq;
+using System.Web.Mvc;
+
+namespace AS.MVCDemo.Controllers
+{
+    public class RegionController : Controller
+    {
+        // GET: Region
+        public ActionResult Index()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var regions = db.Regions
+                    .OrderBy(x =&gt; x.RegionName)
+                    .ToList();
+                return View(regions);
+            }
+        }
+
+        // GET: Region/Details/5
+        public ActionResult Details(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var region = db.Regions
+                    .Include(x =&gt; x.EconomicDatas)
+                    .Include(x =&gt; x.ReportDatas)
+                    .FirstOrDefault(x =&gt; x.RegionID == id);
+
+                if (region == null)
+                    return HttpNotFound();
+
+                return View(region);
+            }
+        }
+
+        // GET: Region/Create
+        public ActionResult Create()
+        {
+            return View();
+        }
+
+        // POST: Region/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Create([Bind(Include = "RegionName,RegionCode,Population,Area")] Region model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    model.CreatedDate = DateTime.Now;
+                    model.ModifiedDate = DateTime.Now;
+                    db.Regions.Add(model);
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
+            }
+            return View(model);
+        }
+
+        // GET: Region/Edit/5
+        public ActionResult Edit(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var region = db.Regions.Find(id);
+                if (region == null)
+                    return HttpNotFound();
+                return View(region);
+            }
+        }
+
+        // POST: Region/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit([Bind(Include = "RegionID,RegionName,RegionCode,Population,Area")] Region model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    model.ModifiedDate = DateTime.Now;
+                    db.Entry(model).State = EntityState.Modified;
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
+            }
+            return View(model);
+        }
+
+        // GET: Region/Delete/5
+        public ActionResult Delete(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var region = db.Regions.Find(id);
+                if (region == null)
+                    return HttpNotFound();
+                return View(region);
+            }
+        }
+
+        // POST: Region/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public ActionResult DeleteConfirmed(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                try
+                {
+                    var region = db.Regions.Find(id);
+                    if (region == null)
+                        return HttpNotFound();
+
+                    db.Regions.Remove(region);
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
+                catch (Exception)
+                {
+                    TempData["Error"] = "Nije moguće obrisati regiju jer ima vezanih podataka (ekonomski podaci ili podaci izvještaja).";
+                    return RedirectToAction("Details", new { id });
+                }
+            }
+        }
+
+        // GET: Region/EconomicDataPartial?regionId=5
+        [HttpGet]
+        public ActionResult EconomicDataPartial(int regionId)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var data = db.EconomicDatas
+                    .Where(x =&gt; x.RegionID == regionId)
+                    .OrderByDescending(x =&gt; x.Year)
+                    .ToList();
+                return PartialView("_EconomicDataTable", data);
+            }
+        }
+    }
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Razlike od DepartmentController-a:</strong><br />
+            <ul>
+                <li><strong>Create GET</strong> je najjednostavniji oblik &mdash; samo <code>return View()</code>, bez
+                    dropdown-a jer Region nema FK polja</li>
+                <li><strong>Create/Edit POST</strong> &mdash; Ako validacija ne uspije, samo vraćamo View(model) bez
+                    ponovnog popunjavanja dropdown-a</li>
+                <li><strong>EconomicDataPartial</strong> &mdash; Ista logika kao EmployeesPartial, ali dohvaća ekonomske
+                    podatke za regiju</li>
+                <li><strong>Delete</strong> &mdash; Ima try-catch jer regija može imati vezane ekonomske podatke</li>
+            </ul>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 2: Index View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Region/Index.cshtml</code><br />
+            Kreirajte folder <code>Views/Region/</code>, zatim dodajte <code>Index.cshtml</code>.
+        </div>
+
+        <pre><code>@model List&lt;BHAS.DbFirst.Region&gt;
+@{
+    ViewBag.Title = "Regije";
+}
+
+&lt;h2&gt;Regije&lt;/h2&gt;
+&lt;p&gt;@Html.ActionLink("Kreiraj novu regiju", "Create", null, new { @class = "btn btn-primary" })&lt;/p&gt;
+
+&lt;table class="table table-bordered table-striped table-hover"&gt;
+    &lt;thead class="table-dark"&gt;
+        &lt;tr&gt;
+            &lt;th&gt;Naziv regije&lt;/th&gt;
+            &lt;th&gt;Šifra&lt;/th&gt;
+            &lt;th&gt;Stanovništvo&lt;/th&gt;
+            &lt;th&gt;Površina (km&sup2;)&lt;/th&gt;
+            &lt;th&gt;Akcije&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        @foreach (var item in Model)
+        {
+            &lt;tr&gt;
+                &lt;td&gt;@item.RegionName&lt;/td&gt;
+                &lt;td&gt;@item.RegionCode&lt;/td&gt;
+                &lt;td&gt;@item.Population.ToString("N0")&lt;/td&gt;
+                &lt;td&gt;@item.Area.ToString("N2")&lt;/td&gt;
+                &lt;td&gt;
+                    @Html.ActionLink("Detalji", "Details", new { id = item.RegionID }, new { @class = "btn btn-sm btn-info" })
+                    @Html.ActionLink("Uredi", "Edit", new { id = item.RegionID }, new { @class = "btn btn-sm btn-warning" })
+                    @Html.ActionLink("Obriši", "Delete", new { id = item.RegionID }, new { @class = "btn btn-sm btn-danger" })
+                &lt;/td&gt;
+            &lt;/tr&gt;
+        }
+    &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+        <div class="concept-box">
+            <strong>Formatiranje brojeva:</strong><br />
+            <code>@item.Population.ToString("N0")</code> &mdash; Format "N0" prikazuje broj bez decimala ali sa
+            separatorom hiljada (npr. 1,234,567).<br />
+            <code>@item.Area.ToString("N2")</code> &mdash; Format "N2" prikazuje 2 decimale (npr. 51,129.20).
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 3: Details View s AJAX-om i cross-controller linkom</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Region/Details.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Region
+@{
+    ViewBag.Title = "Detalji regije";
+}
+
+&lt;h2&gt;Detalji regije&lt;/h2&gt;
+
+@if (TempData["Error"] != null)
+{
+    &lt;div class="alert alert-danger"&gt;@TempData["Error"]&lt;/div&gt;
+}
+
+&lt;div class="card" style="max-width: 600px;"&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row"&gt;
+            &lt;dt class="col-sm-4"&gt;Naziv regije&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.RegionName&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Šifra&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.RegionCode&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Stanovništvo&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.Population.ToString("N0")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Površina (km&sup2;)&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.Area.ToString("N2")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Kreirano&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(Model.CreatedDate.HasValue ? Model.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm") : "-")&lt;/dd&gt;
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div style="margin-top: 15px;"&gt;
+    @Html.ActionLink("Dodaj ekonomske podatke", "Create", "EconomicData", new { regionId = Model.RegionID }, new { @class = "btn btn-success" })
+    @Html.ActionLink("Uredi", "Edit", new { id = Model.RegionID }, new { @class = "btn btn-warning" })
+    @Html.ActionLink("Nazad na listu", "Index", null, new { @class = "btn btn-secondary" })
+&lt;/div&gt;
+
+&lt;hr /&gt;
+&lt;h4&gt;Ekonomski podaci&lt;/h4&gt;
+
+&lt;button id="btnLoadEcoData" class="btn btn-primary mb-3" type="button"
+        data-region-id="@Model.RegionID"&gt;
+    Učitaj ekonomske podatke
+&lt;/button&gt;
+
+&lt;div id="ecoDataHost"&gt;&lt;/div&gt;
+
+@section scripts {
+    &lt;script&gt;
+        $(function () {
+            $("#btnLoadEcoData").on("click", function () {
+                var regionId = $(this).data("region-id");
+                var $host = $("#ecoDataHost");
+
+                $host.html("&lt;div class='text-muted'&gt;Učitavam...&lt;/div&gt;");
+
+                $.get("/Region/EconomicDataPartial", { regionId: regionId })
+                    .done(function (html) { $host.html(html); })
+                    .fail(function (xhr) {
+                        $host.html("&lt;div class='alert alert-danger'&gt;Greška: " + xhr.status + "&lt;/div&gt;");
+                    });
+            });
+        });
+    &lt;/script&gt;
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Cross-controller ActionLink:</strong><br />
+            <code>@Html.ActionLink("Dodaj ekonomske podatke", "Create", "EconomicData", new { regionId = Model.RegionID }, new { @class = "btn btn-success" })</code><br /><br />
+            Parametri su:
+            <ol class="mb-0">
+                <li><code>"Dodaj ekonomske podatke"</code> &mdash; Tekst linka</li>
+                <li><code>"Create"</code> &mdash; Akcija u <strong>drugom</strong> kontroleru</li>
+                <li><code>"EconomicData"</code> &mdash; Ime ciljnog kontrolera</li>
+                <li><code>new { regionId = Model.RegionID }</code> &mdash; Query string parametar (generira URL:
+                    <code>/EconomicData/Create?regionId=5</code>)</li>
+                <li><code>new { @class = "btn btn-success" }</code> &mdash; HTML atributi</li>
+            </ol>
+            <br />
+            Ovo je razlika od <code>@Html.ActionLink("Uredi", "Edit", new { id = ... })</code> koji cilja akciju u
+            <strong>istom</strong> kontroleru.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 4: Create View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Region/Create.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Region
+@{
+    ViewBag.Title = "Kreiraj regiju";
+}
+
+&lt;h2&gt;Kreiraj novu regiju&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="max-width: 500px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.RegionName, "Naziv regije")
+            @Html.EditorFor(m =&gt; m.RegionName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.RegionName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.RegionCode, "Šifra regije")
+            @Html.EditorFor(m =&gt; m.RegionCode, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.RegionCode, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Population, "Stanovništvo")
+            @Html.EditorFor(m =&gt; m.Population, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Population, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Area, "Površina (km&sup2;)")
+            @Html.EditorFor(m =&gt; m.Area, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Area, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="mt-3"&gt;
+            &lt;input type="submit" value="Sačuvaj" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }</code></pre>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 5: Edit View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Region/Edit.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Region
+@{
+    ViewBag.Title = "Uredi regiju";
+}
+
+&lt;h2&gt;Uredi regiju&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="max-width: 500px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        @Html.HiddenFor(m =&gt; m.RegionID)
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.RegionName, "Naziv regije")
+            @Html.EditorFor(m =&gt; m.RegionName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.RegionName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.RegionCode, "Šifra regije")
+            @Html.EditorFor(m =&gt; m.RegionCode, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.RegionCode, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Population, "Stanovništvo")
+            @Html.EditorFor(m =&gt; m.Population, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Population, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Area, "Površina (km&sup2;)")
+            @Html.EditorFor(m =&gt; m.Area, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Area, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="mt-3"&gt;
+            &lt;input type="submit" value="Sačuvaj izmjene" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Details", new { id = Model.RegionID }, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }</code></pre>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 6: Delete View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Region/Delete.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Region
+@{
+    ViewBag.Title = "Obriši regiju";
+}
+
+&lt;h2&gt;Potvrda brisanja&lt;/h2&gt;
+&lt;div class="alert alert-warning"&gt;&lt;strong&gt;Upozorenje!&lt;/strong&gt; Ova akcija je nepovratna.&lt;/div&gt;
+
+&lt;div class="card" style="max-width: 400px;"&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row"&gt;
+            &lt;dt class="col-sm-5"&gt;Naziv regije&lt;/dt&gt;&lt;dd class="col-sm-7"&gt;@Model.RegionName&lt;/dd&gt;
+            &lt;dt class="col-sm-5"&gt;Šifra&lt;/dt&gt;&lt;dd class="col-sm-7"&gt;@Model.RegionCode&lt;/dd&gt;
+            &lt;dt class="col-sm-5"&gt;Stanovništvo&lt;/dt&gt;&lt;dd class="col-sm-7"&gt;@Model.Population.ToString("N0")&lt;/dd&gt;
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+@using (Html.BeginForm("Delete", "Region", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="margin-top: 15px;"&gt;
+        &lt;input type="submit" value="Da, obriši" class="btn btn-danger" /&gt;
+        @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+    &lt;/div&gt;
+}</code></pre>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 7: _EconomicDataTable Partial View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Region/_EconomicDataTable.cshtml</code>
+        </div>
+
+        <pre><code>@model List&lt;BHAS.DbFirst.EconomicData&gt;
+
+@if (Model == null || !Model.Any())
+{
+    &lt;div class="alert alert-info"&gt;Nema ekonomskih podataka za ovu regiju.&lt;/div&gt;
+}
+else
+{
+    &lt;table class="table table-bordered table-striped table-sm"&gt;
+        &lt;thead class="table-secondary"&gt;
+            &lt;tr&gt;
+                &lt;th&gt;Godina&lt;/th&gt;
+                &lt;th&gt;BDP (mil.)&lt;/th&gt;
+                &lt;th&gt;Nezaposlenost (%)&lt;/th&gt;
+                &lt;th&gt;Prosječna plata&lt;/th&gt;
+                &lt;th&gt;Inflacija (%)&lt;/th&gt;
+                &lt;th&gt;Akcije&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            @foreach (var item in Model)
+            {
+                &lt;tr&gt;
+                    &lt;td&gt;@item.Year&lt;/td&gt;
+                    &lt;td&gt;@(item.GDP.HasValue ? item.GDP.Value.ToString("N2") : "-")&lt;/td&gt;
+                    &lt;td&gt;@(item.UnemploymentRate.HasValue ? item.UnemploymentRate.Value.ToString("N2") : "-")&lt;/td&gt;
+                    &lt;td&gt;@(item.AverageSalary.HasValue ? item.AverageSalary.Value.ToString("N2") : "-")&lt;/td&gt;
+                    &lt;td&gt;@(item.InflationRate.HasValue ? item.InflationRate.Value.ToString("N2") : "-")&lt;/td&gt;
+                    &lt;td&gt;
+                        @Html.ActionLink("Uredi", "Edit", "EconomicData", new { id = item.DataID }, new { @class = "btn btn-sm btn-warning" })
+                        @Html.ActionLink("Obriši", "Delete", "EconomicData", new { id = item.DataID }, new { @class = "btn btn-sm btn-danger" })
+                    &lt;/td&gt;
+                &lt;/tr&gt;
+            }
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+    &lt;p class="text-muted"&gt;Ukupno zapisa: @Model.Count&lt;/p&gt;
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Cross-controller linkovi u Partial View-u:</strong><br />
+            <code>@Html.ActionLink("Uredi", "Edit", "EconomicData", new { id = item.DataID }, ...)</code><br /><br />
+            Ovaj partial view pripada Region kontroleru, ali akcijski linkovi vode na <strong>EconomicData</strong>
+            kontroler. Ovo demonstrira kako partial view-ovi mogu sadržavati linkove na bilo koji kontroler u
+            aplikaciji.<br /><br />
+            Generira URL: <code>/EconomicData/Edit/5</code>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Šta ste naučili u ovom poglavlju</h2>
+        <ul>
+            <li><strong>Jednostavan Create</strong> &mdash; Bez dropdown-a kada entitet nema FK</li>
+            <li><strong>Cross-controller ActionLink</strong> &mdash; Linkovi na akcije u drugom kontroleru s query
+                string parametrima</li>
+            <li><strong>Partial view s cross-controller linkovima</strong> &mdash; _EconomicDataTable koristi
+                EconomicData kontroler</li>
+            <li><strong>AJAX pattern (ponavljanje)</strong> &mdash; Isti $.get() obrazac kao kod Department-a</li>
+            <li><strong>Try-catch pri brisanju</strong> &mdash; Zaštita od FK constraint grešaka</li>
+        </ul>
+
+        <div class="d-flex justify-content-between mt-4 mb-5">
+            <a href="04-project.html" class="btn btn-outline-secondary btn-lg">&laquo; Prethodno: Project</a>
+            <a href="06-economic-data.html" class="btn btn-primary btn-lg">Sljedeće: EconomicDataController &raquo;</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

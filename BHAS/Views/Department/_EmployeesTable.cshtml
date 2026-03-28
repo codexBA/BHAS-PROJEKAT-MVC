@@ -1,0 +1,31 @@
+﻿@model List<BHAS.DbFirst.Employee>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">Nema zaposlenih u ovom odjelu.</div>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+        <thead class="table-secondary">
+            <tr>
+                <th>Ime</th>
+                <th>Prezime</th>
+                <th>Pozicija</th>
+                <th>Plata</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var emp in Model)
+            {
+                <tr>
+                    <td>@emp.FirstName</td>
+                    <td>@emp.LastName</td>
+                    <td>@emp.Position</td>
+                    <td>@emp.Salary.ToString("N2")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <p class="text-muted">Ukupno zaposlenih: @Model.Count</p>
+}

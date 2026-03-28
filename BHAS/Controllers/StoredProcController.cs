@@ -12,7 +12,8 @@ using System.Web.Mvc;
 
 namespace BHAS.Controllers
 {
-    public class StoredProcController : Controller
+    [Authorize]
+    public class StoredProcController : BaseController
     {
         // GET: StoredProc
         public ActionResult Index()
@@ -120,6 +121,7 @@ namespace BHAS.Controllers
         }
 
 
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult SalaryRaise()
         {
             using (var db = new StateStatisticsDBEntities())
@@ -158,6 +160,7 @@ namespace BHAS.Controllers
         /// <param name="percentage"></param>
         /// <returns></returns>
         [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult SalaryRaise(int departmentId, decimal percentage)
         {
             using (var db = new StateStatisticsDBEntities())
@@ -180,6 +183,7 @@ namespace BHAS.Controllers
 
 
 
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult UpdateProjectStatus()
         {
             using (var db = new StateStatisticsDBEntities())
@@ -192,6 +196,7 @@ namespace BHAS.Controllers
 
         // POST: StoredProc/UpdateProjectStatus
         [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult UpdateProjectStatus(int projectId, string newStatus)
         {

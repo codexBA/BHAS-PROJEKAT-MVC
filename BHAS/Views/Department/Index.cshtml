@@ -1,11 +1,15 @@
-﻿
-@model List<BHAS.DbFirst.Department>
-
+﻿@model List<BHAS.DbFirst.Department>
 @{
     ViewBag.Title = "Odjeli";
 }
 
 <h2>Odjeli</h2>
+<p>
+    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+    {
+        @Html.ActionLink("Kreiraj novi odjel", "Create", null, new { @class = "btn btn-primary" })
+    }
+</p>
 
 <table class="table table-bordered table-hover table-striped">
     <thead class="table-danger">
@@ -19,15 +23,55 @@
     <tbody>
         @foreach (var dpt in Model)
         {
-            <tr>
+            <tr class="department-row" data-id="@dpt.DepartmentID" style="cursor: pointer;">
                 <td>@dpt.DepartmentName</td>
                 <td>@dpt.DepartmentCode</td>
-                <td>@dpt.Budget</td>
+                <td>@dpt.Budget.ToString("N2")</td>
                 <td>
-                    @Html.ActionLink("Detalji", "Details", new { id = dpt.DepartmentID }, 
-                                                           new { @class = "btn btn-sm btn-info"})
+                    @Html.ActionLink("Detalji", "Details", new { id = dpt.DepartmentID },
+                        new { @class = "btn btn-sm btn-info" })
+                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                    {
+                        @Html.ActionLink("Uredi", "Edit", new { id = dpt.DepartmentID },
+                            new { @class = "btn btn-sm btn-warning" })
+                    }
+                    @if (User.IsInRole("SuperAdmin"))
+                    {
+                        @Html.ActionLink("Obriši", "Delete", new { id = dpt.DepartmentID },
+                            new { @class = "btn btn-sm btn-danger" })
+                    }
                 </td>
             </tr>
         }
     </tbody>
 </table>
+
+<div style="margin-top: 20px;">
+    <h4 id="employeesHostTitle" style="display:none;">Zaposlenici odabranog odjela:</h4>
+    <div id="employeesHost"></div>
+</div>
+
+@section scripts {
+    <script>
+        $(function () {
+            $(".department-row").on("click", function (e) {
+                if ($(e.target).is("a") || $(e.target).closest("a").length) return;
+
+                var departmentId = $(this).data("id");
+                var $host = $("#employeesHost");
+                var $title = $("#employeesHostTitle");
+
+                $host.html("<div class='text-muted'>Učitavam...</div>");
+                $title.show();
+
+                $.get("/Department/EmployeesPartial", { departmentId: departmentId })
+                    .done(function (html) {
+                        $host.html(html);
+                    })
+                    .fail(function (xhr) {
+                        $host.html("<div class='alert alert-danger'>Greška pri učitavanju: " + xhr.status + "</div>");
+                    });
+            });
+        });
+    </script>
+}

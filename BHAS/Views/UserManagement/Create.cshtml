@@ -1,0 +1,64 @@
+﻿@model BHAS.Models.CreateUserViewModel
+@{
+    ViewBag.Title = "Novi korisnik";
+}
+
+<h2>Novi korisnik</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                @Html.LabelFor(m => m.FullName, new { @class = "form-label" })
+                @Html.TextBoxFor(m => m.FullName, new { @class = "form-control" })
+                @Html.ValidationMessageFor(m => m.FullName, "", new { @class = "text-danger small" })
+            </div>
+            <div class="mb-3">
+                @Html.LabelFor(m => m.Email, new { @class = "form-label" })
+                @Html.TextBoxFor(m => m.Email, new { @class = "form-control" })
+                @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger small" })
+            </div>
+            <div class="mb-3">
+                @Html.LabelFor(m => m.Password, new { @class = "form-label" })
+                @Html.PasswordFor(m => m.Password, new { @class = "form-control" })
+                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger small" })
+            </div>
+            <div class="mb-3">
+                @Html.LabelFor(m => m.ConfirmPassword, new { @class = "form-label" })
+                @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control" })
+                @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "text-danger small" })
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                @Html.LabelFor(m => m.Role, new { @class = "form-label" })
+                @Html.DropDownList("Role", new SelectList((string[])ViewBag.Roles),
+                    "-- odaberi ulogu --", new { @class = "form-select" })
+                @Html.ValidationMessageFor(m => m.Role, "", new { @class = "text-danger small" })
+            </div>
+            <div class="mb-3">
+                @Html.LabelFor(m => m.DepartmentID, new { @class = "form-label" })
+                @Html.DropDownList("DepartmentID",
+                    new SelectList((IEnumerable<BHAS.DbFirst.Department>)ViewBag.Departments,
+                        "DepartmentID", "DepartmentName"),
+                    "-- bez odjela --", new { @class = "form-select" })
+                <small class="text-muted">Obavezno za Editor ulogu</small>
+            </div>
+
+            <div class="alert alert-info small mt-3">
+                <strong>Opis uloga:</strong><br />
+                <strong>SuperAdmin</strong> — sve + upravljanje korisnicima<br />
+                <strong>Admin</strong> — puni CRUD pristup<br />
+                <strong>Editor</strong> — editovanje zapisa svog odjela<br />
+                <strong>User</strong> — samo pregled
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-success">Kreiraj korisnika</button>
+    @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary ms-2" })
+}

@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Poglavlje 9 - Access Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        pre { background: #f4f4f4; border: 1px solid #ddd; border-radius: 4px; padding: 16px; overflow-x: auto; }
+        code { font-family: Consolas, 'Courier New', monospace; }
+        .concept-box  { background: #e8f4fd; border-left: 4px solid #0d6efd; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+        .warning-box  { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+        .step-box     { background: #d1e7dd; border-left: 4px solid #198754; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+        .danger-box   { background: #f8d7da; border-left: 4px solid #dc3545; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+        .nav-chapter  { background: #f8f9fa; border-bottom: 1px solid #dee2e6; }
+        .nav-chapter a { text-decoration: none; padding: 8px 12px; display: inline-block; font-size: 0.9rem; }
+        .nav-chapter a:hover  { background: #e9ecef; }
+        .nav-chapter a.active { font-weight: bold; background: #0d6efd; color: white; border-radius: 4px; }
+        .summary-card { background: #f0f7ff; border: 2px solid #0d6efd; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .role-badge   { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="nav-chapter">
+        <div class="container">
+            <a href="00-introduction.html">0 - Uvod</a>
+            <a href="01-layout-and-home.html">1 - Layout i Home</a>
+            <a href="02-department.html">2 - Department</a>
+            <a href="03-employee.html">3 - Employee</a>
+            <a href="04-project.html">4 - Project</a>
+            <a href="05-region.html">5 - Region</a>
+            <a href="06-economic-data.html">6 - EconomicData</a>
+            <a href="07-report.html">7 - Report</a>
+            <a href="08-stored-procedures.html">8 - Stored Procedure</a>
+            <a href="09-access-management.html" class="active">9 - Access Management</a>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5">
+        <h1>Poglavlje 9: Access Management — ASP.NET Identity 2.x</h1>
+        <p class="lead">
+            Dodat ćemo potpuno upravljanje pristupom koristeći <strong>ASP.NET Identity 2.x</strong>.
+            Implementiramo četiri uloge, departmentski-ograničeni pristup za Editor ulogu,
+            i SuperAdmin panel za kreiranje i upravljanje korisnicima.
+        </p>
+
+        <div class="alert alert-info">
+            <strong>Novi koncepti u ovom poglavlju:</strong>
+            <ul class="mb-0">
+                <li><strong>OWIN</strong> — šta je, historija, middleware pipeline, Katana projekat</li>
+                <li><strong>ASP.NET Identity 2.x</strong> — šta je zamijenio, arhitektura (UserManager, RoleManager, Stores, Claims)</li>
+                <li>Cookie-based autentifikacija (<code>UseCookieAuthentication</code>) i Security Stamp</li>
+                <li><code>[Authorize]</code> i <code>[Authorize(Roles="...")]</code> atributi</li>
+                <li>Dva EF konteksta u jednoj aplikaciji (DB-First + Code-First)</li>
+                <li><code>CreatePerOwinContext&lt;T&gt;</code> — per-request lifecycle i alternativa DI kontejneru</li>
+                <li>Departmentski-ograničen pristup kroz <code>BaseController.CanEditDepartment</code></li>
+                <li>SuperAdmin kreira korisnike — bez javne registracije</li>
+                <li>Automatsko seedovanje uloga i SuperAdmin naloga pri pokretanju</li>
+                <li>Razlike ASP.NET MVC 5 vs .NET Core (OWIN, DI, Policy-based auth)</li>
+            </ul>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="uvod-owin-identity">Uvod: Šta su OWIN i ASP.NET Identity?</h2>
+        <p>
+            Prije nego počnemo s implementacijom, važno je razumjeti <em>zašto</em> ove tehnologije
+            postoje i šta su zamijenile. Ovaj uvod objašnjava historiju, svrhu i arhitekturu obje
+            komponente.
+        </p>
+
+        <!-- ===== HISTORIJA ===== -->
+        <h4 class="mt-4">Šta je postojalo prije?</h4>
+
+        <div class="warning-box">
+            <strong>SqlMembershipProvider (ASP.NET 2.0, 2005)</strong><br />
+            Prva "ugrađena" podrška za autentifikaciju u ASP.NET-u. Radila je uz
+            <code>aspnet_regsql.exe</code> koji je kreirao fiksnu šemu tabela (<code>aspnet_Users</code>,
+            <code>aspnet_Membership</code>, <code>aspnet_Roles</code>...) direktno u SQL Server.<br /><br />
+            <strong>Problemi:</strong>
+            <ul class="mb-0">
+                <li>Nije se moglo proširiti (dodati npr. FullName, DepartmentID) bez zasebnih tabela i ručnog spajanja</li>
+                <li>Čvrsto vezano za SQL Server — nije radilo s MySQL, PostgreSQL, Azure Table Storage</li>
+                <li>Lozinke hashirane slabim algoritmom (MD5 ili SHA-1 bez soli)</li>
+                <li>Tightly coupled s IIS i <code>System.Web</code> — nije radilo van web konteksta (unit testi, konzolne aplikacije)</li>
+                <li>Nije podržavalo Claims — moderan pristup autentifikaciji</li>
+            </ul>
+        </div>
+
+        <div class="warning-box">
+            <strong>SimpleMembership / WebMatrix (2011)</strong><br />
+            Pokušaj pojednostavljivanja — novi API koji je dopuštao prilagodbu šeme baze.
+            Ipak, još uvijek vezan za <code>System.Web</code>, složen za testiranje, i bez Claims podrške.
+            Nije postao standard jer je MVC 4 / WebAPI tim već radio na nečem boljem.
+        </div>
+
+        <!-- ===== ASP.NET IDENTITY ===== -->
+        <h4 class="mt-4">Šta je ASP.NET Identity?</h4>
+
+        <div class="concept-box">
+            <strong>ASP.NET Identity</strong> je sistem za upravljanje korisnicima koji je Microsoft
+            izdao 2013. zajedno s ASP.NET MVC 5. Zamijenio je SqlMembershipProvider i SimpleMembership.
+        </div>
+
+        <p><strong>Ključni dizajnerski ciljevi:</strong></p>
+        <ul>
+            <li><strong>Proširivost</strong> — <code>IdentityUser</code> je obična C# klasa; dodaješ polja kao što bi dodao u bilo koji model</li>
+            <li><strong>Neovisnost o bazi</strong> — "Store" pattern razdvaja logiku od perzistencije. Postoje EF store, Dapper store, Azure store... možeš pisati vlastiti</li>
+            <li><strong>Testabilnost</strong> — <code>UserManager&lt;T&gt;</code> radi bez IIS-a; može se unit testirati s mock store-om</li>
+            <li><strong>Claims-based identitet</strong> — svaki korisnik = <code>ClaimsIdentity</code> s kolekcijom key-value parova (claim-ova). Uloga "Admin" je samo claim tipa <code>ClaimTypes.Role</code></li>
+            <li><strong>Sigurniji password hashing</strong> — PBKDF2 s 1000 iteracija i SHA-1 (Identity v2); Identity v3 (.NET Core) koristi SHA-256</li>
+        </ul>
+
+        <h5 class="mt-3">Arhitektura ASP.NET Identity 2.x</h5>
+        <pre><code>// Sloj 1: MODELI — definiraju šemu korisnika
+IdentityUser               // baza: Id, UserName, Email, PasswordHash, SecurityStamp...
+  └── ApplicationUser      // naša proširena klasa: + FullName, DepartmentID
+
+IdentityRole               // baza: Id, Name
+
+// Sloj 2: STORES — perzistencija (čitanje/pisanje u bazu)
+IUserStore&lt;TUser&gt;          // sučelje koje UserManager poziva
+  └── UserStore&lt;TUser&gt;    // EF implementacija (Microsoft.AspNet.Identity.EntityFramework)
+
+IRoleStore&lt;TRole&gt;         // sučelje
+  └── RoleStore&lt;TRole&gt;   // EF implementacija
+
+// Sloj 3: MANAGERS — poslovna logika (validacija, hashiranje, lockout...)
+UserManager&lt;TUser&gt;        // CreateAsync, FindByEmailAsync, AddToRoleAsync, CheckPasswordAsync...
+  └── ApplicationUserManager  // naša konfiguracija (password pravila, lockout)
+
+RoleManager&lt;TRole&gt;        // RoleExistsAsync, CreateAsync...
+  └── ApplicationRoleManager
+
+SignInManager&lt;TUser, TKey&gt; // PasswordSignInAsync — provjerava lozinku + izdaje cookie
+  └── ApplicationSignInManager
+
+// Sloj 4: BAZA — EF Code-First kreira ove tabele automatski
+AspNetUsers          // Id, UserName, Email, PasswordHash, SecurityStamp, FullName, DepartmentID
+AspNetRoles          // Id, Name
+AspNetUserRoles      // UserId, RoleId (many-to-many veza)
+AspNetUserClaims     // UserId, ClaimType, ClaimValue
+AspNetUserLogins     // UserId, LoginProvider, ProviderKey (za OAuth/Google login)</code></pre>
+
+        <div class="concept-box">
+            <strong>Šta su Claims?</strong><br />
+            Claim je jednostavan key-value par koji opisuje korisnika:
+            <code>{ Type: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", Value: "admin@demo.com" }</code><br />
+            <code>{ Type: "http://schemas.microsoft.com/ws/2008/06/identity/claims/role", Value: "Admin" }</code><br /><br />
+            <code>User.IsInRole("Admin")</code> interno traži claim tipa <code>ClaimTypes.Role</code> s vrijednošću "Admin".<br />
+            <code>User.Identity.Name</code> vraća claim tipa <code>ClaimTypes.Name</code>.<br /><br />
+            Prednost claims-based pristupa: sve informacije o korisniku putuju u šifriranom cookie-ju —
+            svaki zahtjev ne mora ići u bazu kako bi se provjerila uloga.
+        </div>
+
+        <!-- ===== OWIN ===== -->
+        <h4 class="mt-4">Šta je OWIN?</h4>
+
+        <div class="concept-box">
+            <strong>OWIN</strong> (Open Web Interface for .NET) nije biblioteka — to je
+            <strong>specifikacija</strong> (standard) koja definira kako web server i web
+            aplikacija trebaju komunicirati, bez da su čvrsto vezani jedan za drugog.
+        </div>
+
+        <p>
+            Klasični ASP.NET MVC je čvrsto vezan za <code>System.Web.dll</code> i IIS pipeline.
+            Svaki zahtjev prolazi kroz desetine IIS HttpModules (autentifikacija, session, kompresija...)
+            čak i za API pozive koji ništa od toga ne trebaju. Nije se moglo pokrenuti van IIS-a.
+        </p>
+
+        <p>
+            OWIN specifikacija (2012) definira jedno jednostavno sučelje:
+        </p>
+        <pre><code>// OWIN aplikacija je samo jedna funkcija:
+using AppFunc = Func&lt;
+    IDictionary&lt;string, object&gt;,  // environment: request + response podaci
+    Task                           // asinkrono, bez povratne vrijednosti
+&gt;;
+
+// Middleware je "omotač" oko te funkcije:
+// prima zahtjev, može ga promijeniti, prosljeđuje sljedećem middleware-u, obradi odgovor</code></pre>
+
+        <p>
+            Microsoftova implementacija OWIN specifikacije zove se <strong>Katana</strong>
+            (2013). Uz Katana dolaze paketi:
+        </p>
+        <ul>
+            <li><code>Microsoft.Owin</code> — osnovna implementacija, <code>IOwinContext</code>, <code>IOwinRequest</code>, <code>IOwinResponse</code></li>
+            <li><code>Microsoft.Owin.Host.SystemWeb</code> — adapter koji ubacuje OWIN pipeline unutar klasičnog IIS pipeline-a (bridge)</li>
+            <li><code>Microsoft.Owin.Security.Cookies</code> — middleware za cookie autentifikaciju</li>
+        </ul>
+
+        <h5 class="mt-3">Middleware pipeline — vizualizacija</h5>
+        <pre><code>HTTP zahtjev dolazi od preglednika
+│
+▼
+┌─────────────────────────────────────────────────────┐
+│  IIS / System.Web pipeline (HttpModules...)          │
+│                                                     │
+│  ┌─────────────────────────────────────────────┐   │
+│  │  OWIN pipeline (Katana)                      │   │
+│  │                                             │   │
+│  │  [1] CookieAuthenticationMiddleware          │   │
+│  │      → čita auth cookie                     │   │
+│  │      → validira security stamp              │   │
+│  │      → kreira ClaimsPrincipal               │   │
+│  │      → popunjava User.Identity              │   │
+│  │      ↓ prosljeđuje zahtjev                  │   │
+│  │  [2] Sljedeći middleware (npr. OAuth)        │   │
+│  │      ↓                                      │   │
+│  │  [3] MVC Router → Controller → Action        │   │
+│  │                                             │   │
+│  └─────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+│
+▼
+HTTP odgovor vraćen pregledaču
+(CookieMiddleware može dodati Set-Cookie header na izlazu)</code></pre>
+
+        <div class="concept-box">
+            <strong>Zašto je OWIN bio revolucionaran za klasični ASP.NET?</strong><br />
+            Omogućio je da autentifikacijski kod radi <em>neovisno od IIS-a</em> — isti
+            <code>UseCookieAuthentication</code> middleware može raditi na IIS-u, na OWIN self-host
+            konzolnoj aplikaciji, ili u Nancy/ServiceStack frameworku — jer ovisi samo o OWIN
+            specifikaciji, ne o <code>System.Web</code>.<br /><br />
+            Ovo je i razlog zašto ASP.NET Core nije trebao OWIN kao poseban sloj — Core je od početka
+            dizajniran s ugrađenim middleware pipeline-om (isti koncept, ali nativni).
+        </div>
+
+        <!-- ===== KAKO ZAJEDNO ===== -->
+        <h4 class="mt-4">Kako OWIN i ASP.NET Identity rade zajedno?</h4>
+
+        <p>
+            ASP.NET Identity <strong>nije vezano za OWIN</strong> — <code>UserManager</code> i
+            <code>RoleManager</code> rade bez OWIN-a (mogu se koristiti u konzolnoj aplikaciji).
+            OWIN je potreban samo za <strong>isporuku autentifikacije</strong> kroz cookie middleware.
+        </p>
+
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr><th>Komponenta</th><th>Odgovornost</th><th>Paket</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>UserManager</code></td>
+                    <td>Logika korisnika: kreiranje, provjera lozinke, uloge, lockout</td>
+                    <td>Identity.Core</td>
+                </tr>
+                <tr>
+                    <td><code>SignInManager</code></td>
+                    <td>Orkestrira: provjeri lozinku → generiraj Claims → predaj OWIN-u da postavi cookie</td>
+                    <td>Identity.Owin</td>
+                </tr>
+                <tr>
+                    <td><code>CookieAuthenticationMiddleware</code></td>
+                    <td>Na svakom zahtjevu: čita cookie → deserijalizira Claims → popuni <code>User.Identity</code></td>
+                    <td>Owin.Security.Cookies</td>
+                </tr>
+                <tr>
+                    <td><code>ApplicationDbContext</code></td>
+                    <td>EF Code-First perzistencija: čuva i čita Identity tabele iz SQL Server-a</td>
+                    <td>Identity.EntityFramework</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><strong>Životni ciklus prijave (korak-po-korak):</strong></p>
+        <ol>
+            <li>Korisnik unese email + lozinku, klikne "Prijava"</li>
+            <li><code>AccountController.Login(POST)</code> poziva <code>SignInManager.PasswordSignInAsync(...)</code></li>
+            <li><code>SignInManager</code> poziva <code>UserManager.FindByNameAsync(email)</code> → vraća <code>ApplicationUser</code></li>
+            <li><code>UserManager.CheckPasswordAsync(user, password)</code> → uspoređuje PBKDF2 hash</li>
+            <li>Na uspjehu: <code>user.GenerateUserIdentityAsync(manager)</code> kreira <code>ClaimsIdentity</code> (s ulogama kao claim-ovima)</li>
+            <li>OWIN <code>IAuthenticationManager.SignIn(claimsIdentity)</code> → šifrira identity → kreira <code>Set-Cookie</code> header</li>
+            <li>Svaki naredni zahtjev: <code>CookieAuthenticationMiddleware</code> čita cookie → dešifrira → kreira <code>ClaimsPrincipal</code> → <code>Thread.CurrentPrincipal = User = principal</code></li>
+            <li><code>User.IsInRole("Admin")</code> i <code>[Authorize(Roles="Admin")]</code> rade bez upita u bazu</li>
+        </ol>
+
+        <div class="warning-box">
+            <strong>Security Stamp — zašto postoji?</strong><br />
+            Cookie može živjeti satima ili danima. Šta ako SuperAdmin u međuvremenu obriše korisnikov nalog
+            ili promijeni lozinku? Cookie je još uvijek validan!<br /><br />
+            <code>SecurityStamp</code> je GUID koji se mijenja svaki put kad se promijeni lozinka, uloga
+            ili sigurnosni podatak. <code>SecurityStampValidator</code> u <code>Startup.cs</code>
+            svakih 30 minuta provjerava u bazi: je li security stamp u cookie-ju isti kao u bazi?
+            Ako nije — cookie se poništava i korisnik mora ponovo da se prijavi.<br /><br />
+            Ovo je razlog zašto Identity dodaje <code>SecurityStamp</code> kolonu u <code>AspNetUsers</code>.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="nuget">Korak 1: NuGet paketi</h2>
+
+        <div class="step-box">
+            Pokreni u <strong>Package Manager Console</strong> (Tools → NuGet → Package Manager Console),
+            obavezno odaberi <em>BHAS</em> kao Default Project:
+        </div>
+
+        <pre><code>Install-Package Microsoft.AspNet.Identity.Core         -Version 2.2.3
+Install-Package Microsoft.AspNet.Identity.EntityFramework -Version 2.2.3
+Install-Package Microsoft.AspNet.Identity.Owin         -Version 2.2.3
+Install-Package Microsoft.Owin                         -Version 4.2.2
+Install-Package Microsoft.Owin.Host.SystemWeb          -Version 4.2.2
+Install-Package Microsoft.Owin.Security                -Version 4.2.2
+Install-Package Microsoft.Owin.Security.Cookies        -Version 4.2.2</code></pre>
+
+        <div class="concept-box">
+            <strong>Zašto toliko paketa?</strong><br />
+            <code>Identity.Core</code> — osnovna logika (UserManager, RoleManager, lozinke)<br />
+            <code>Identity.EntityFramework</code> — EF implementacija: UserStore, RoleStore, baza podataka<br />
+            <code>Identity.Owin</code> — integracija između Identity i OWIN middleware-a<br />
+            <code>Owin + Host.SystemWeb</code> — OWIN adapter koji radi unutar classic ASP.NET IIS pipline-a<br />
+            <code>Security + Security.Cookies</code> — middleware za čitanje/pisanje auth cookie-ja
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="modeli">Korak 2: Identity modeli</h2>
+
+        <div class="step-box">
+            <strong>Nova datoteka:</strong> <code>Models/IdentityModels.cs</code>
+        </div>
+
+        <pre><code>using Microsoft.AspNet.Identity;
+using Microsoft.AspNet.Identity.EntityFramework;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+namespace BHAS.Models
+{
+    // ApplicationUser nasljeđuje IdentityUser.
+    // IdentityUser već ima: Id, UserName, Email, PasswordHash, SecurityStamp...
+    // Mi dodajemo dva polja:
+    public class ApplicationUser : IdentityUser
+    {
+        public string FullName { get; set; }   // za prikaz u navbaru
+        public int? DepartmentID { get; set; } // za department-scoped pristup (Editor uloga)
+
+        // Kreira ClaimsIdentity koji se čuva u auth cookie-ju.
+        // Poziva ga OWIN pri svakom uspješnom loginu.
+        public async Task&lt;ClaimsIdentity&gt; GenerateUserIdentityAsync(
+            UserManager&lt;ApplicationUser&gt; manager)
+        {
+            var userIdentity = await manager.CreateIdentityAsync(
+                this, DefaultAuthenticationTypes.ApplicationCookie);
+            return userIdentity;
+        }
+    }
+
+    // POSEBAN DbContext samo za Identity tabele.
+    // Naslijeđuje IdentityDbContext koji automatski definira:
+    //   AspNetUsers, AspNetRoles, AspNetUserRoles, AspNetUserClaims, AspNetUserLogins
+    // Koristi "AuthDbConnection" = StateStatisticsAuthDB (odvojena baza!).
+    public class ApplicationDbContext : IdentityDbContext&lt;ApplicationUser&gt;
+    {
+        public ApplicationDbContext()
+            : base("AuthDbConnection", throwIfV1Schema: false) { }
+
+        public static ApplicationDbContext Create() =&gt; new ApplicationDbContext();
+    }
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Zašto odvojena baza?</strong><br />
+            Aplikacija već koristi <code>StateStatisticsDBEntities</code> (DB-First EF) za
+            <code>StateStatisticsDB</code>. Ako bismo koristili isti DbContext, EF Code-First bi
+            pokušao upravljati šemom postojeće baze — što može uzrokovati brisanje tabela!<br /><br />
+            Rješenje: <code>ApplicationDbContext</code> koristi drugu bazu
+            <code>StateStatisticsAuthDB</code> — EF je kreira automatski pri prvom pokretanju.
+            U produkciji česta praksa je imati sve u jednoj bazi ali s odvojenim migracijama.
+        </div>
+
+        <div class="warning-box">
+            <strong>Dva konteksta — dva connection stringa:</strong><br />
+            <code>StateStatisticsDBEntities</code> → <code>StateStatisticsDB</code> (DB-First, EntityClient format)<br />
+            <code>ApplicationDbContext</code> → <code>StateStatisticsAuthDB</code> (Code-First, SqlClient format)<br /><br />
+            Nikad ne miješaj instance ova dva konteksta — svaki radi s drugom bazom!
+        </div>
+
+        <div class="step-box">
+            <strong>Dodaj u Web.config</strong> (u <code>&lt;connectionStrings&gt;</code>):
+        </div>
+        <pre><code>&lt;add name="AuthDbConnection"
+     connectionString="Data Source=localhost,2433;Initial Catalog=StateStatisticsAuthDB;
+       User Id=sa;Password=NasaLozinka!2026;TrustServerCertificate=True;
+       MultipleActiveResultSets=True"
+     providerName="System.Data.SqlClient" /&gt;</code></pre>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="owin">Korak 3: OWIN Startup i IdentityConfig</h2>
+
+        <div class="concept-box">
+            <strong>OWIN u klasičnom ASP.NET — kako se uklapa?</strong><br />
+            Paket <code>Microsoft.Owin.Host.SystemWeb</code> registrira OWIN pipeline kao
+            <code>HttpModule</code> unutar klasičnog IIS pipeline-a. Konkretno: pri startanju
+            aplikacije, ovaj paket traži klasu označenu s
+            <code>[assembly: OwinStartup(typeof(...))]</code> i poziva njenu
+            <code>Configuration(IAppBuilder app)</code> metodu.<br /><br />
+            <code>IAppBuilder</code> je centralni objekt OWIN konfiguracije — svaki poziv
+            <code>app.Use...()</code> dodaje middleware u pipeline. Redoslijed registracije je
+            važan: middleware se izvršavaju redom kojim su dodani.
+        </div>
+
+        <div class="step-box">
+            <strong>Nova datoteka:</strong> <code>Startup.cs</code> (u korijenu projekta)
+        </div>
+
+        <pre><code>using Microsoft.Owin;
+using Owin;
+using System;
+using Microsoft.Owin.Security.Cookies;
+using Microsoft.AspNet.Identity;
+using Microsoft.AspNet.Identity.Owin;
+using BHAS.Models;
+
+// Ovaj atribut kaže OWIN-u: "kada aplikacija krene, pozovi Startup.Configuration()"
+[assembly: OwinStartup(typeof(BHAS.Startup))]
+
+namespace BHAS
+{
+    public class Startup
+    {
+        public void Configuration(IAppBuilder app)
+        {
+            // Registriraj factory metode za OWIN context.
+            // Svaka factory se poziva jednom po HTTP zahtjevu — kreira novu instancu
+            // i automatski je dispose-uje na kraju zahtjeva.
+            app.CreatePerOwinContext(ApplicationDbContext.Create);
+            app.CreatePerOwinContext&lt;ApplicationUserManager&gt;(ApplicationUserManager.Create);
+            app.CreatePerOwinContext&lt;ApplicationSignInManager&gt;(ApplicationSignInManager.Create);
+            app.CreatePerOwinContext&lt;ApplicationRoleManager&gt;(ApplicationRoleManager.Create);
+
+            // Cookie autentifikacijski middleware.
+            // Na svakom zahtjevu: čita auth cookie, validira ga, popunjava User.Identity.
+            app.UseCookieAuthentication(new CookieAuthenticationOptions
+            {
+                AuthenticationType = DefaultAuthenticationTypes.ApplicationCookie,
+                LoginPath = new PathString("/Account/Login"), // redirect za neautentificirane
+                Provider = new CookieAuthenticationProvider
+                {
+                    // Svakih 30 min provjerava bazu: je li korisnik obrisan/promijenio lozinku?
+                    OnValidateIdentity = SecurityStampValidator
+                        .OnValidateIdentity&lt;ApplicationUserManager, ApplicationUser&gt;(
+                            validateInterval: TimeSpan.FromMinutes(30),
+                            regenerateIdentity: (mgr, user) =&gt;
+                                user.GenerateUserIdentityAsync(mgr))
+                }
+            });
+        }
+    }
+}</code></pre>
+
+        <div class="step-box">
+            <strong>Nova datoteka:</strong> <code>App_Start/IdentityConfig.cs</code> — definira
+            ApplicationUserManager, ApplicationSignInManager i ApplicationRoleManager:
+        </div>
+
+        <pre><code>// ApplicationUserManager — konfigurira password pravila, lockout, token provider
+public class ApplicationUserManager : UserManager&lt;ApplicationUser&gt;
+{
+    public ApplicationUserManager(IUserStore&lt;ApplicationUser&gt; store) : base(store) { }
+
+    public static ApplicationUserManager Create(
+        IdentityFactoryOptions&lt;ApplicationUserManager&gt; options, IOwinContext context)
+    {
+        var manager = new ApplicationUserManager(
+            new UserStore&lt;ApplicationUser&gt;(context.Get&lt;ApplicationDbContext&gt;()));
+
+        // Pravila za username i email
+        manager.UserValidator = new UserValidator&lt;ApplicationUser&gt;(manager)
+        {
+            AllowOnlyAlphanumericUserNames = false,
+            RequireUniqueEmail = true
+        };
+
+        // Password pravila (opuštena za demo)
+        manager.PasswordValidator = new PasswordValidator
+        {
+            RequiredLength = 6,
+            RequireDigit = true,
+            RequireLowercase = true,
+            RequireNonLetterOrDigit = false,
+            RequireUppercase = false
+        };
+
+        // Lockout: 5 neuspješnih pokušaja → zaključan 5 minuta
+        manager.UserLockoutEnabledByDefault = true;
+        manager.MaxFailedAccessAttemptsBeforeLockout = 5;
+        manager.DefaultAccountLockoutTimeSpan = TimeSpan.FromMinutes(5);
+
+        return manager;
+    }
+}
+
+// ApplicationSignInManager — provjerava lozinku i izdaje cookie
+public class ApplicationSignInManager : SignInManager&lt;ApplicationUser, string&gt;
+{
+    public ApplicationSignInManager(ApplicationUserManager mgr, IAuthenticationManager auth)
+        : base(mgr, auth) { }
+
+    public static ApplicationSignInManager Create(
+        IdentityFactoryOptions&lt;ApplicationSignInManager&gt; options, IOwinContext context)
+        =&gt; new ApplicationSignInManager(
+            context.GetUserManager&lt;ApplicationUserManager&gt;(), context.Authentication);
+}
+
+// ApplicationRoleManager — kreira/čita uloge
+public class ApplicationRoleManager : RoleManager&lt;IdentityRole&gt;
+{
+    public ApplicationRoleManager(IRoleStore&lt;IdentityRole, string&gt; store) : base(store) { }
+
+    public static ApplicationRoleManager Create(
+        IdentityFactoryOptions&lt;ApplicationRoleManager&gt; options, IOwinContext context)
+        =&gt; new ApplicationRoleManager(new RoleStore&lt;IdentityRole&gt;(context.Get&lt;ApplicationDbContext&gt;()));
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Šta radi <code>CreatePerOwinContext&lt;T&gt;</code>?</strong><br />
+            Ovo je OWIN-ov ekvivalent dependency injection registracije. Svaki poziv
+            <code>app.CreatePerOwinContext&lt;T&gt;(factory)</code> kaže OWIN-u:<br />
+            <em>"Kada neko prvi put zatraži instancu T unutar ovog HTTP zahtjeva, pozovi factory,
+            vrati tu instancu, i dispose-uj je kada se zahtjev završi."</em><br /><br />
+            <strong>Životni ciklus po zahtjevu:</strong>
+            <ol class="mb-0">
+                <li>HTTP zahtjev stiže → OWIN kreira novi <code>IOwinContext</code> za ovaj zahtjev</li>
+                <li>Kontroler poziva <code>HttpContext.GetOwinContext().Get&lt;ApplicationDbContext&gt;()</code></li>
+                <li>OWIN vidi da instanca još ne postoji za ovaj zahtjev → poziva <code>ApplicationDbContext.Create()</code></li>
+                <li>Ista instanca se vraća svim pozivima <code>Get&lt;ApplicationDbContext&gt;()</code> u istom zahtjevu</li>
+                <li>Zahtjev se završava → OWIN automatski poziva <code>Dispose()</code> na svim instancama</li>
+            </ol>
+            <br />
+            Ovo garantira: jedan <code>DbContext</code> po zahtjevu (efikasno), automatsko zatvaranje
+            konekcije (bez memory leakova).<br /><br />
+            U <strong>.NET Core</strong> ovo radi ugrađeni DI kontejner s <code>AddScoped&lt;T&gt;</code>:
+            jedan scope = jedan HTTP zahtjev; konstruktorska injekcija umjesto ručnog
+            <code>GetOwinContext().GetUserManager&lt;T&gt;()</code>.
+        </div>
+
+        <div class="concept-box">
+            <strong>Zašto postoje tri manager klase?</strong><br />
+            <code>ApplicationUserManager</code> — radi s korisnicima (CRUD, lozinke, lockout, token generacija)<br />
+            <code>ApplicationSignInManager</code> — orkestrira prijavu: provjeri lozinku + postavi cookie<br />
+            <code>ApplicationRoleManager</code> — radi s ulogama (kreiranje uloga, provjera postoji li uloga)<br /><br />
+            Identity razdvaja ove odgovornosti jer:
+            <ul class="mb-0">
+                <li>Možeš imati UserManager bez SignInManager (npr. u pozadinskim servisima)</li>
+                <li>Možeš imati RoleManager bez UserManager</li>
+                <li>Svaki može imati svoju konfiguraciju, mock implementaciju u testovima, itd.</li>
+            </ul>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="seed">Korak 4: Automatsko seedovanje baze</h2>
+
+        <div class="step-box">
+            <strong>Nova datoteka:</strong> <code>Infrastructure/AuthDbSeeder.cs</code>
+        </div>
+
+        <pre><code>public static class AuthDbSeeder
+{
+    public static void Seed()
+    {
+        using (var db = new ApplicationDbContext())
+        {
+            // Kreira bazu StateStatisticsAuthDB ako ne postoji
+            // (i sve AspNet* tabele unutar nje)
+            db.Database.CreateIfNotExists();
+
+            var roleManager = new RoleManager&lt;IdentityRole&gt;(new RoleStore&lt;IdentityRole&gt;(db));
+            var userManager = new UserManager&lt;ApplicationUser&gt;(new UserStore&lt;ApplicationUser&gt;(db));
+
+            // Kreira 4 uloge (ako ne postoje)
+            string[] roles = { "SuperAdmin", "Admin", "Editor", "User" };
+            foreach (var role in roles)
+                if (!roleManager.RoleExists(role))
+                    roleManager.Create(new IdentityRole(role));
+
+            // Kreira SuperAdmin korisnika (ako ne postoji)
+            if (userManager.FindByEmail("admin@demo.com") == null)
+            {
+                var superAdmin = new ApplicationUser
+                {
+                    UserName = "admin@demo.com",
+                    Email = "admin@demo.com",
+                    FullName = "Super Administrator",
+                    EmailConfirmed = true
+                };
+                var result = userManager.Create(superAdmin, "Admin@123!");
+                if (result.Succeeded)
+                    userManager.AddToRole(superAdmin.Id, "SuperAdmin");
+            }
+        }
+    }
+}</code></pre>
+
+        <div class="step-box">
+            <strong>Pozovi iz Global.asax.cs</strong> u <code>Application_Start()</code>:
+        </div>
+        <pre><code>using BHAS.Infrastructure;
+// ...
+protected void Application_Start()
+{
+    AreaRegistration.RegisterAllAreas();
+    FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
+    RouteConfig.RegisterRoutes(RouteTable.Routes);
+    BundleConfig.RegisterBundles(BundleTable.Bundles);
+
+    AuthDbSeeder.Seed(); // kreira bazu i seed podatke pri prvom pokretanju
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Kada se Seed() poziva?</strong><br />
+            <code>Application_Start</code> se izvršava jednom — kada IIS/IIS Express prvi put
+            pokrene aplikaciju (ili nakon recycle-a). Seed metoda provjeri postoje li već uloge i
+            korisnik, pa je sigurno pozivati je svaki put — neće kreirati duplikate.<br /><br />
+            U <strong>.NET Core</strong> seedovanje se radi u <code>Program.cs</code> odmah nakon
+            <code>app.Build()</code>, ili kroz EF migration seed metode.
+        </div>
+
+        <div class="warning-box">
+            <strong>Pristup seedovanom nalogu:</strong><br />
+            Email: <code>admin@demo.com</code> &nbsp;|&nbsp; Lozinka: <code>Admin@123!</code><br />
+            Odmah nakon prve prijave, SuperAdmin treba kreirati ostale korisnike putem
+            <em>Upravljanje korisnicima</em>.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="account">Korak 5: AccountController — prijava i odjava</h2>
+
+        <div class="step-box">
+            <strong>Nova datoteka:</strong> <code>Controllers/AccountController.cs</code>
+        </div>
+
+        <pre><code>[Authorize]  // svi zahtjevi zahtijevaju login, osim onih s [AllowAnonymous]
+public class AccountController : Controller
+{
+    private ApplicationSignInManager SignInManager
+        =&gt; HttpContext.GetOwinContext().Get&lt;ApplicationSignInManager&gt;();
+
+    // GET: Account/Login
+    [AllowAnonymous]  // PREGAZI class-level [Authorize]
+    public ActionResult Login(string returnUrl)
+    {
+        ViewBag.ReturnUrl = returnUrl;
+        return View();
+    }
+
+    // POST: Account/Login
+    [HttpPost, AllowAnonymous, ValidateAntiForgeryToken]
+    public async Task&lt;ActionResult&gt; Login(LoginViewModel model, string returnUrl)
+    {
+        if (!ModelState.IsValid) return View(model);
+
+        // PasswordSignInAsync: provjerava lozinku, prati failed attempts, izdaje cookie
+        var result = await SignInManager.PasswordSignInAsync(
+            model.Email, model.Password, model.RememberMe, shouldLockout: true);
+
+        switch (result)
+        {
+            case SignInStatus.Success:
+                return RedirectToLocal(returnUrl);
+            case SignInStatus.LockedOut:
+                ModelState.AddModelError("", "Nalog zaključan. Pokušaj za 5 min.");
+                return View(model);
+            default:
+                ModelState.AddModelError("", "Pogrešan email ili lozinka.");
+                return View(model);
+        }
+    }
+
+    // POST: Account/Logout — mora biti POST (ne GET) iz CSRF razloga
+    [HttpPost, ValidateAntiForgeryToken]
+    public ActionResult Logout()
+    {
+        HttpContext.GetOwinContext()
+                   .Authentication
+                   .SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+        return RedirectToAction("Index", "Home");
+    }
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Tok prijave:</strong><br />
+            1. Korisnik šalje POST s email + password<br />
+            2. <code>SignInManager.PasswordSignInAsync</code> provjerava hash lozinke u bazi<br />
+            3. Na uspjehu: OWIN generira <em>auth cookie</em> (šifrirani JWT-like token)<br />
+            4. Svaki sljedeći zahtjev: middleware čita cookie, kreira <code>ClaimsPrincipal</code>,
+               popunjava <code>User.Identity</code> i <code>User.IsInRole(...)</code><br />
+            5. Na odjavi: cookie se briše iz preglednika
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="authorize">Korak 6: [Authorize] atribut — zaštita akcija</h2>
+
+        <div class="concept-box">
+            <strong>[Authorize]</strong> — svaki autentificirani korisnik može pristupiti<br />
+            <strong>[Authorize(Roles = "Admin,SuperAdmin")]</strong> — samo navedene uloge<br />
+            <strong>[AllowAnonymous]</strong> — pregazi [Authorize] na višem nivou (klasa → metoda)
+        </div>
+
+        <p>Svaki kontroler (osim Home) sada ima <code>[Authorize]</code> na nivou klase,
+        a osjetljive akcije imaju dodatna ograničenja:</p>
+
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Kontroler</th>
+                    <th>Index/Details</th>
+                    <th>Create</th>
+                    <th>Edit</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Home</td>
+                    <td><span class="role-badge" style="background:#d1e7dd">Svi</span></td>
+                    <td>—</td><td>—</td><td>—</td>
+                </tr>
+                <tr>
+                    <td>Department</td>
+                    <td><span class="role-badge" style="background:#cfe2ff">Logiran</span></td>
+                    <td>Admin, SuperAdmin</td>
+                    <td>Admin, SuperAdmin</td>
+                    <td>SuperAdmin</td>
+                </tr>
+                <tr>
+                    <td>Employee</td>
+                    <td><span class="role-badge" style="background:#cfe2ff">Logiran</span></td>
+                    <td>Admin, SuperAdmin</td>
+                    <td>Admin, <strong>Editor*</strong>, SuperAdmin</td>
+                    <td>Admin, SuperAdmin</td>
+                </tr>
+                <tr>
+                    <td>Project</td>
+                    <td><span class="role-badge" style="background:#cfe2ff">Logiran</span></td>
+                    <td>Admin, SuperAdmin</td>
+                    <td>Admin, <strong>Editor*</strong>, SuperAdmin</td>
+                    <td>Admin, SuperAdmin</td>
+                </tr>
+                <tr>
+                    <td>Report</td>
+                    <td><span class="role-badge" style="background:#cfe2ff">Logiran</span></td>
+                    <td>Admin, SuperAdmin</td>
+                    <td>Admin, <strong>Editor*</strong>, SuperAdmin</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td>Region / EconomicData</td>
+                    <td><span class="role-badge" style="background:#cfe2ff">Logiran</span></td>
+                    <td>Admin, SuperAdmin</td>
+                    <td>Admin, SuperAdmin</td>
+                    <td>Admin, SuperAdmin</td>
+                </tr>
+                <tr>
+                    <td>StoredProc</td>
+                    <td><span class="role-badge" style="background:#cfe2ff">Logiran</span></td>
+                    <td>—</td>
+                    <td>Admin, SuperAdmin (SP6, SP7)</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td>UserManagement</td>
+                    <td>SuperAdmin</td>
+                    <td>SuperAdmin</td>
+                    <td>SuperAdmin</td>
+                    <td>SuperAdmin</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><small>* Editor može editovati samo zapise svog odjela — detaljno u Koraku 8.</small></p>
+
+        <div class="step-box">
+            <strong>Primjer: DepartmentController</strong>
+        </div>
+        <pre><code>[Authorize]  // svi autentificirani korisnici mogu vidjeti Index i Details
+public class DepartmentController : BaseController
+{
+    public ActionResult Index() { ... }  // nasljeđuje [Authorize] od klase
+    public ActionResult Details(int id) { ... }
+
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public ActionResult Create() { ... }
+
+    [HttpPost]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [ValidateAntiForgeryToken]
+    public ActionResult Create(Department model) { ... }
+
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public ActionResult Edit(int id) { ... }
+
+    [Authorize(Roles = "SuperAdmin")]   // brisanje odjela — samo SuperAdmin
+    public ActionResult Delete(int id) { ... }
+
+    [HttpPost, ActionName("Delete")]
+    [Authorize(Roles = "SuperAdmin")]
+    [ValidateAntiForgeryToken]
+    public ActionResult DeleteConfirmed(int id) { ... }
+}</code></pre>
+
+        <div class="warning-box">
+            <strong>Šta se desi neovlaštenom korisniku?</strong><br />
+            U ASP.NET MVC 5, <code>[Authorize]</code> uvijek preusmjerava na login stranicu — čak i
+            ako je korisnik već prijavljen ali nema odgovarajuću ulogu. Ovo je poznano ograničenje
+            MVC 5 — vidi Korak 9 (razlika s .NET Core gdje 401 vs 403 razlikuje "nije prijavljen"
+            od "nema dozvolu").
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="usermanagement">Korak 7: UserManagementController</h2>
+
+        <div class="step-box">
+            <strong>Nova datoteka:</strong> <code>Controllers/UserManagementController.cs</code>
+            — dostupan samo SuperAdmin korisnicima
+        </div>
+
+        <pre><code>[Authorize(Roles = "SuperAdmin")]
+public class UserManagementController : BaseController
+{
+    // GET: UserManagement — lista svih korisnika s ulogama i odjelom
+    public ActionResult Index()
+    {
+        using (var authDb = new ApplicationDbContext())
+        using (var appDb = new StateStatisticsDBEntities())
+        {
+            var departments = appDb.Departments
+                .ToDictionary(d =&gt; d.DepartmentID, d =&gt; d.DepartmentName);
+
+            // Učitaj roleName lookup: roleId -&gt; naziv uloge
+            var allRoles = authDb.Roles.ToDictionary(r =&gt; r.Id, r =&gt; r.Name);
+
+            var users = authDb.Users.Include("Roles").ToList();
+
+            var list = users.Select(u =&gt; new UserListItem
+            {
+                Id = u.Id,
+                FullName = u.FullName,
+                Email = u.Email,
+                // Pronađi nazive uloga kroz roleId u lookup-u
+                Roles = u.Roles.Select(r =&gt; allRoles[r.RoleId]).ToList(),
+                DepartmentName = u.DepartmentID.HasValue
+                    ? departments.GetValueOrDefault(u.DepartmentID.Value) : null
+            }).ToList();
+
+            return View(list);
+        }
+    }
+
+    // POST: UserManagement/Create — SuperAdmin kreira nalog
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task&lt;ActionResult&gt; Create(CreateUserViewModel model)
+    {
+        if (!ModelState.IsValid) { ... return View(model); }
+
+        var user = new ApplicationUser
+        {
+            UserName = model.Email, Email = model.Email,
+            FullName = model.FullName, DepartmentID = model.DepartmentID,
+            EmailConfirmed = true
+        };
+
+        // UserManager.CreateAsync: validira email jedinstvenost, hashira lozinku, upisuje u bazu
+        var result = await UserManager.CreateAsync(user, model.Password);
+        if (result.Succeeded)
+        {
+            await UserManager.AddToRoleAsync(user.Id, model.Role);
+            return RedirectToAction("Index");
+        }
+        // result.Errors sadrži tačne poruke (npr. "Password too short")
+        foreach (var error in result.Errors)
+            ModelState.AddModelError("", error);
+        ...
+    }
+
+    // POST: UserManagement/Delete — ne može obrisati sam sebe ili zadnjeg SuperAdmin-a
+    [HttpPost, ValidateAntiForgeryToken]
+    public ActionResult Delete(string id)
+    {
+        if (id == User.Identity.GetUserId())
+        { TempData["Error"] = "Ne možeš obrisati vlastiti nalog."; return ...; }
+
+        using (var authDb = new ApplicationDbContext())
+        {
+            var superAdminRole = authDb.Roles.FirstOrDefault(r =&gt; r.Name == "SuperAdmin");
+            int superAdminCount = authDb.Users
+                .Count(u =&gt; u.Roles.Any(r =&gt; r.RoleId == superAdminRole.Id));
+            bool isTarget = authDb.Users
+                .Any(u =&gt; u.Id == id &amp;&amp; u.Roles.Any(r =&gt; r.RoleId == superAdminRole.Id));
+
+            if (isTarget &amp;&amp; superAdminCount &lt;= 1)
+            { TempData["Error"] = "Zadnji SuperAdmin ne može biti obrisan."; return ...; }
+
+            var user = authDb.Users.Find(id);
+            user.Roles.Clear();  // Identity zahtijeva ručno brisanje relacija
+            authDb.Users.Remove(user);
+            authDb.SaveChanges();
+        }
+        return RedirectToAction("Index");
+    }
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Zašto <code>user.Roles.Clear()</code> prije brisanja?</strong><br />
+            Identity čuva UserRoles kao zasebnu tabelu (<code>AspNetUserRoles</code>) s foreign key
+            vezama. EF neće automatski kaskadno brisati te redove — mora se eksplicitno ukloniti
+            kolekcija relacija ili koristiti kaskadno brisanje na nivou FK-a (što Identity ne
+            konfigurira automatski).
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="department-access">Korak 8: Departmentski-ograničen pristup (Editor uloga)</h2>
+
+        <div class="concept-box">
+            <strong>Zahtjev:</strong> Editor uloga može editovati Zaposlenike, Projekte i Izvještaje
+            — ali <strong>samo one koji pripadaju istom odjelu kao Editor korisnik</strong>.
+        </div>
+
+        <div class="step-box">
+            <strong>Nova datoteka:</strong> <code>Infrastructure/BaseController.cs</code>
+            — svi kontroleri nasljeđuju ovaj umjesto <code>Controller</code>
+        </div>
+
+        <pre><code>public class BaseController : Controller
+{
+    // UserManager iz OWIN contexta (lazy property)
+    protected ApplicationUserManager UserManager
+        =&gt; HttpContext.GetOwinContext().GetUserManager&lt;ApplicationUserManager&gt;();
+
+    // Vraća true ako trenutni korisnik smije editovati zapis iz tog odjela.
+    // SuperAdmin i Admin — uvijek smiju.
+    // Editor — samo ako mu DepartmentID odgovara.
+    protected bool CanEditDepartment(int? entityDepartmentId)
+    {
+        if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin")) return true;
+        if (!User.IsInRole("Editor")) return false;
+
+        var userId = User.Identity.GetUserId();
+        using (var db = new ApplicationDbContext())
+        {
+            var appUser = db.Users.Find(userId);
+            return appUser != null &amp;&amp; appUser.DepartmentID == entityDepartmentId;
+        }
+    }
+}</code></pre>
+
+        <p>U <strong>EmployeeController</strong> (i ProjectController, ReportController) koristimo:</p>
+
+        <pre><code>[Authorize(Roles = "Admin,Editor,SuperAdmin")]
+public ActionResult Edit(int id)
+{
+    using (var db = new StateStatisticsDBEntities())
+    {
+        var employee = db.Employees.Find(id);
+        if (employee == null) return HttpNotFound();
+
+        // Provjera departmentskog pristupa za Editor ulogu
+        if (!CanEditDepartment(employee.DepartmentID))
+            return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
+                "Nemaš pristup zaposlenicima iz ovog odjela.");
+
+        PopulateDepartmentsSelectList(db, employee.DepartmentID);
+        return View(employee);
+    }
+}
+
+[HttpPost]
+[Authorize(Roles = "Admin,Editor,SuperAdmin")]
+[ValidateAntiForgeryToken]
+public ActionResult Edit(Employee model)
+{
+    if (ModelState.IsValid)
+    {
+        using (var db = new StateStatisticsDBEntities())
+        {
+            // Provjera i na POST — ne oslanjaj se na GET provjeru jer korisnik
+            // može poslati POST direktno (zaobilazeći GET formu)
+            var existing = db.Employees.Find(model.EmployeeID);
+            if (existing != null &amp;&amp; !CanEditDepartment(existing.DepartmentID))
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden,
+                    "Nemaš pristup zaposlenicima iz ovog odjela.");
+
+            model.ModifiedDate = DateTime.Now;
+            db.Entry(model).State = EntityState.Modified;
+            db.SaveChanges();
+            return RedirectToAction("Index");
+        }
+    }
+    ...
+}</code></pre>
+
+        <div class="danger-box">
+            <strong>Zašto ponavljamo provjeru i na POST akciji?</strong><br />
+            Napadač može poslati HTTP POST zahtjev direktno (bez GET forme) sa proizvoljnim podacima.
+            Ako provjeru radimo samo u GET akciji, to je sigurnosna rupa. Provjera mora biti i na
+            POST — uvijek validiraj na serveru, nikad ne oslanjaj se samo na klijent.
+        </div>
+
+        <div class="concept-box">
+            <strong>Skrivanje dugmadi u View-ovima:</strong><br />
+            Kontroler vraća 403 ako korisnik nema pravo — ali za bolji UX, dugmad "Uredi"
+            i "Obriši" skrivamo i u View-u pomoću <code>User.IsInRole()</code>:
+        </div>
+        <pre><code>@Html.ActionLink("Detalji", "Details", new { id = item.EmployeeID }, ...)
+
+@if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Editor"))
+{
+    @Html.ActionLink("Uredi", "Edit", new { id = item.EmployeeID }, ...)
+}
+@if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+{
+    @Html.ActionLink("Obriši", "Delete", new { id = item.EmployeeID }, ...)
+}</code></pre>
+
+        <div class="warning-box">
+            <strong>Skrivanje ≠ sigurnost.</strong> Skrivanje dugmadi u View-u je samo UX poboljšanje.
+            Stvarna sigurnost se provodi na kontroleru (<code>[Authorize]</code> i
+            <code>CanEditDepartment</code>). Nikad ne oslanjaj se isključivo na skrivanje HTML
+            elemenata.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="comparison">Korak 9: ASP.NET MVC 5 vs ASP.NET Core — razlike</h2>
+
+        <p>Isti koncepti (uloge, cookie auth, Identity), ali drugačija implementacija:</p>
+
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Aspekt</th>
+                    <th>ASP.NET MVC 5 (.NET Framework)</th>
+                    <th>ASP.NET Core</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Middleware</strong></td>
+                    <td>OWIN (<code>Startup.cs</code> posebna klasa, <code>[assembly: OwinStartup]</code>)</td>
+                    <td>Ugrađen u framework (<code>Program.cs</code>, <code>app.UseAuthentication()</code>)</td>
+                </tr>
+                <tr>
+                    <td><strong>DI kontejner</strong></td>
+                    <td>Nema ugrađen DI — ručno kroz OWIN context (<code>HttpContext.GetOwinContext().GetUserManager&lt;T&gt;()</code>)</td>
+                    <td>Ugrađen DI (<code>services.AddIdentity&lt;...&gt;()</code>), injektira se kroz konstruktor</td>
+                </tr>
+                <tr>
+                    <td><strong>UserManager u kontroleru</strong></td>
+                    <td><code>HttpContext.GetOwinContext().GetUserManager&lt;ApplicationUserManager&gt;()</code></td>
+                    <td><code>private readonly UserManager&lt;ApplicationUser&gt; _um;<br/>public Controller(UserManager&lt;ApplicationUser&gt; um) { _um = um; }</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Cookie auth konfiguracija</strong></td>
+                    <td><code>app.UseCookieAuthentication(new CookieAuthenticationOptions { ... })</code></td>
+                    <td><code>services.AddAuthentication().AddCookie(o =&gt; o.LoginPath = "/login")</code></td>
+                </tr>
+                <tr>
+                    <td><strong>[Authorize] sintaksa</strong></td>
+                    <td>Identična</td>
+                    <td>Identična + Policy-based: <code>[Authorize(Policy = "CanEdit")]</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Policy-based auth</strong></td>
+                    <td>Ne postoji (samo uloge ili custom atributi)</td>
+                    <td><code>services.AddAuthorization(o =&gt; o.AddPolicy("CanEdit", p =&gt; p.RequireRole("Admin").RequireClaim("dept")))</code></td>
+                </tr>
+                <tr>
+                    <td><strong>401 vs 403</strong></td>
+                    <td>Uvijek redirect na login (bez razlike)</td>
+                    <td>Razlikuje: 401 = nije prijavljen (redirect na login), 403 = nema dozvolu (forbidden page)</td>
+                </tr>
+                <tr>
+                    <td><strong>Password hasher</strong></td>
+                    <td>PBKDF2 s SHA-1 (Identity v2)</td>
+                    <td>PBKDF2 s SHA-256 (Identity v3, kompatibilan s v2)</td>
+                </tr>
+                <tr>
+                    <td><strong>IdentityDbContext</strong></td>
+                    <td>Isti koncept</td>
+                    <td>Isti koncept — <code>ApplicationDbContext : IdentityDbContext&lt;ApplicationUser&gt;</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Claims</strong></td>
+                    <td>Dostupni, ali manje naglašeni</td>
+                    <td>Centralni — sve je <code>ClaimsPrincipal</code>, role su samo claims tipa <code>RoleClaimType</code></td>
+                </tr>
+                <tr>
+                    <td><strong>[AllowAnonymous]</strong></td>
+                    <td>Identičan</td>
+                    <td>Identičan</td>
+                </tr>
+                <tr>
+                    <td><strong>Migracije</strong></td>
+                    <td>EF Migrations ili ručni SQL</td>
+                    <td><code>dotnet ef migrations add ... && dotnet ef database update</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Seedovanje</strong></td>
+                    <td>Ručno u <code>Application_Start</code></td>
+                    <td><code>IHostedService</code> ili <code>app.SeedDatabase()</code> u <code>Program.cs</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="concept-box">
+            <strong>Kratak zaključak:</strong><br />
+            Koncepti su isti — autentifikacija, korisnici, uloge, [Authorize] atributi.
+            Razlika je u <strong>infrastrukturi</strong>: MVC 5 koristi OWIN i ručno upravljanje
+            dependency injection-om, dok .NET Core ima ugrađen DI kontejner i moderniji middleware
+            pipeline. Prelaz s MVC 5 na Core zahtijeva refaktor bootstrap koda, ali logika
+            kontrolera (role provjere, CanEditDepartment) ostaje gotovo identična.
+        </div>
+
+        <hr />
+
+        <!-- Sažetak -->
+        <div class="summary-card">
+            <h4>Sažetak poglavlja 9</h4>
+            <ul>
+                <li>Dodati 7 NuGet paketa (Identity + OWIN) u BHAS</li>
+                <li>Kreiran <code>ApplicationUser</code> s poljem <code>DepartmentID</code></li>
+                <li>Kreiran <code>ApplicationDbContext</code> za odvojenu bazu <code>StateStatisticsAuthDB</code></li>
+                <li>OWIN <code>Startup.cs</code> konfigurira cookie middleware i per-request factory</li>
+                <li><code>AuthDbSeeder.Seed()</code> kreira uloge i SuperAdmin pri pokretanju</li>
+                <li><code>AccountController</code>: Login (async, PasswordSignInAsync) i Logout (POST)</li>
+                <li><code>BaseController.CanEditDepartment</code> provjerava departmentski pristup za Editor</li>
+                <li>Svi kontroleri (osim Home) sada zahtijevaju autentifikaciju</li>
+                <li>Create/Edit/Delete zaštićeni po ulogama; Editor ima departmentska ograničenja</li>
+                <li><code>UserManagementController</code>: SuperAdmin kreira/uređuje/briše korisnike</li>
+                <li>View-ovi skrivaju dugmad na osnovu uloge (<code>User.IsInRole()</code>)</li>
+                <li>Upoređene razlike MVC 5 vs .NET Core (OWIN vs ugrađeni DI)</li>
+            </ul>
+
+            <h5 class="mt-3">Sve datoteke</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Novo kreiranje:</strong>
+                    <ul class="mb-0">
+                        <li><code>Models/IdentityModels.cs</code></li>
+                        <li><code>Models/AccountViewModels.cs</code></li>
+                        <li><code>Models/UserManagementViewModels.cs</code></li>
+                        <li><code>App_Start/IdentityConfig.cs</code></li>
+                        <li><code>Startup.cs</code></li>
+                        <li><code>Infrastructure/AuthDbSeeder.cs</code></li>
+                        <li><code>Infrastructure/BaseController.cs</code></li>
+                        <li><code>Controllers/AccountController.cs</code></li>
+                        <li><code>Controllers/UserManagementController.cs</code></li>
+                        <li><code>Views/Account/Login.cshtml</code></li>
+                        <li><code>Views/UserManagement/Index.cshtml</code></li>
+                        <li><code>Views/UserManagement/Create.cshtml</code></li>
+                        <li><code>Views/UserManagement/Edit.cshtml</code></li>
+                        <li><code>Views/Shared/_LoginPartial.cshtml</code></li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <strong>Izmjene:</strong>
+                    <ul class="mb-0">
+                        <li><code>Web.config</code> — AuthDbConnection + Forms auth</li>
+                        <li><code>Global.asax.cs</code> — AuthDbSeeder.Seed()</li>
+                        <li><code>Views/Shared/_Layout.cshtml</code> — _LoginPartial</li>
+                        <li><code>Controllers/DepartmentController.cs</code></li>
+                        <li><code>Controllers/EmployeeController.cs</code></li>
+                        <li><code>Controllers/ProjectController.cs</code></li>
+                        <li><code>Controllers/RegionController.cs</code></li>
+                        <li><code>Controllers/EconomicDataController.cs</code></li>
+                        <li><code>Controllers/ReportController.cs</code></li>
+                        <li><code>Controllers/StoredProcController.cs</code></li>
+                        <li>Svi Index View-ovi (role-based dugmad)</li>
+                        <li><code>BHAS.csproj</code></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <a href="08-stored-procedures.html" class="btn btn-outline-secondary">
+                &laquo; Prethodno: Stored Procedures
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

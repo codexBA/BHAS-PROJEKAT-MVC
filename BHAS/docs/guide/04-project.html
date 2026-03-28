@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="bs">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Poglavlje 4 - ProjectController</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: Consolas, 'Courier New', monospace;
+        }
+
+        .concept-box {
+            background: #e8f4fd;
+            border-left: 4px solid #0d6efd;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .step-box {
+            background: #d1e7dd;
+            border-left: 4px solid #198754;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 4px;
+        }
+
+        .nav-chapter {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-chapter a {
+            text-decoration: none;
+            padding: 8px 12px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .nav-chapter a:hover {
+            background: #e9ecef;
+        }
+
+        .nav-chapter a.active {
+            font-weight: bold;
+            background: #0d6efd;
+            color: white;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="nav-chapter">
+        <div class="container">
+            <a href="00-introduction.html">0 - Uvod</a>
+            <a href="01-layout-and-home.html">1 - Layout i Home</a>
+            <a href="02-department.html">2 - Department</a>
+            <a href="03-employee.html">3 - Employee</a>
+            <a href="04-project.html" class="active">4 - Project</a>
+            <a href="05-region.html">5 - Region</a>
+            <a href="06-economic-data.html">6 - EconomicData</a>
+            <a href="07-report.html">7 - Report</a>
+            <a href="08-stored-procedures.html">8 - Stored Procedure</a>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5">
+        <h1>Poglavlje 4: ProjectController</h1>
+        <p class="lead">U ovom poglavlju kreirat ćemo CRUD za projekte. Novi koncepti uključuju: statičke dropdown
+            vrijednosti, uvjetno renderiranje badge-ova, textarea za višelinijski tekst i rad s nullable datumima.</p>
+
+        <div class="alert alert-info">
+            <strong>Novi koncepti u ovom poglavlju:</strong>
+            <ul class="mb-0">
+                <li>SelectList od string niza (statičke vrijednosti)</li>
+                <li>Conditional badge rendering u Razor-u</li>
+                <li>TextAreaFor za višelinijski unos</li>
+                <li>Nullable DateTime u View-u</li>
+            </ul>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2 id="controller">Korak 1: Kreiranje ProjectController</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Controllers/ProjectController.cs</code>
+        </div>
+
+        <pre><code>using BHAS.DbFirst;
+using System;
+using System.Data.Entity;
+using System.Linq;
+using System.Web.Mvc;
+
+namespace AS.MVCDemo.Controllers
+{
+    public class ProjectController : Controller
+    {
+        private static readonly string[] StatusValues = { "Planiran", "Aktivan", "Završen", "Otkazan" };
+
+        // GET: Project
+        public ActionResult Index()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var projects = db.Projects
+                    .Include(x =&gt; x.Department)
+                    .OrderBy(x =&gt; x.ProjectName)
+                    .ToList();
+                return View(projects);
+            }
+        }
+
+        // GET: Project/Details/5
+        public ActionResult Details(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var project = db.Projects
+                    .Include(x =&gt; x.Department)
+                    .FirstOrDefault(x =&gt; x.ProjectID == id);
+
+                if (project == null)
+                    return HttpNotFound();
+
+                return View(project);
+            }
+        }
+
+        // GET: Project/Create
+        public ActionResult Create()
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, null);
+                ViewBag.StatusList = new SelectList(StatusValues);
+                return View();
+            }
+        }
+
+        // POST: Project/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Create([Bind(Include = "ProjectName,DepartmentID,Budget,StartDate,EndDate,Status,Description")] Project model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    model.CreatedDate = DateTime.Now;
+                    model.ModifiedDate = DateTime.Now;
+                    db.Projects.Add(model);
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
+            }
+
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, model.DepartmentID);
+                ViewBag.StatusList = new SelectList(StatusValues, model.Status);
+            }
+            return View(model);
+        }
+
+        // GET: Project/Edit/5
+        public ActionResult Edit(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var project = db.Projects.Find(id);
+                if (project == null)
+                    return HttpNotFound();
+
+                PopulateDepartmentsSelectList(db, project.DepartmentID);
+                ViewBag.StatusList = new SelectList(StatusValues, project.Status);
+                return View(project);
+            }
+        }
+
+        // POST: Project/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit([Bind(Include = "ProjectID,ProjectName,DepartmentID,Budget,StartDate,EndDate,Status,Description")] Project model)
+        {
+            if (ModelState.IsValid)
+            {
+                using (var db = new StateStatisticsDBEntities())
+                {
+                    model.ModifiedDate = DateTime.Now;
+                    db.Entry(model).State = EntityState.Modified;
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
+            }
+
+            using (var db = new StateStatisticsDBEntities())
+            {
+                PopulateDepartmentsSelectList(db, model.DepartmentID);
+                ViewBag.StatusList = new SelectList(StatusValues, model.Status);
+            }
+            return View(model);
+        }
+
+        // GET: Project/Delete/5
+        public ActionResult Delete(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var project = db.Projects
+                    .Include(x =&gt; x.Department)
+                    .FirstOrDefault(x =&gt; x.ProjectID == id);
+
+                if (project == null)
+                    return HttpNotFound();
+
+                return View(project);
+            }
+        }
+
+        // POST: Project/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public ActionResult DeleteConfirmed(int id)
+        {
+            using (var db = new StateStatisticsDBEntities())
+            {
+                var project = db.Projects.Find(id);
+                if (project == null)
+                    return HttpNotFound();
+
+                db.Projects.Remove(project);
+                db.SaveChanges();
+                return RedirectToAction("Index");
+            }
+        }
+
+        private void PopulateDepartmentsSelectList(StateStatisticsDBEntities db, int? selectedId)
+        {
+            var departments = db.Departments.OrderBy(x =&gt; x.DepartmentName).ToList();
+            ViewBag.DepartmentID = new SelectList(departments, "DepartmentID", "DepartmentName", selectedId);
+        }
+    }
+}</code></pre>
+
+        <h3>Novi koncepti u kontroleru</h3>
+
+        <div class="concept-box">
+            <strong>Statičke dropdown vrijednosti:</strong><br />
+            <code>private static readonly string[] StatusValues = { "Planiran", "Aktivan", "Završen", "Otkazan" };</code><br /><br />
+            Umjesto da dohvaćamo statuse iz baze, definiramo ih kao konstantni niz stringova. Ovo je korisno za
+            vrijednosti koje se rijetko mijenjaju.<br /><br />
+            Kreiranje SelectList-a od string niza:<br />
+            <code>ViewBag.StatusList = new SelectList(StatusValues)</code> &mdash; Kreira dropdown bez create/edit
+            (value i text su isti string)<br />
+            <code>ViewBag.StatusList = new SelectList(StatusValues, model.Status)</code> &mdash; Kreira dropdown s
+            predodabranom vrijednošću
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 2: Index View (Lista projekata)</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Project/Index.cshtml</code><br />
+            Kreirajte folder <code>Views/Project/</code>, zatim dodajte <code>Index.cshtml</code>.
+        </div>
+
+        <pre><code>@model List&lt;BHAS.DbFirst.Project&gt;
+@{
+    ViewBag.Title = "Projekti";
+}
+
+&lt;h2&gt;Projekti&lt;/h2&gt;
+&lt;p&gt;@Html.ActionLink("Kreiraj novi projekat", "Create", null, new { @class = "btn btn-primary" })&lt;/p&gt;
+
+&lt;table class="table table-bordered table-striped table-hover"&gt;
+    &lt;thead class="table-dark"&gt;
+        &lt;tr&gt;
+            &lt;th&gt;Naziv projekta&lt;/th&gt;
+            &lt;th&gt;Odjel&lt;/th&gt;
+            &lt;th&gt;Budžet&lt;/th&gt;
+            &lt;th&gt;Početak&lt;/th&gt;
+            &lt;th&gt;Kraj&lt;/th&gt;
+            &lt;th&gt;Status&lt;/th&gt;
+            &lt;th&gt;Akcije&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        @foreach (var item in Model)
+        {
+            &lt;tr&gt;
+                &lt;td&gt;@item.ProjectName&lt;/td&gt;
+                &lt;td&gt;@(item.Department != null ? item.Department.DepartmentName : "-")&lt;/td&gt;
+                &lt;td&gt;@item.Budget.ToString("N2")&lt;/td&gt;
+                &lt;td&gt;@item.StartDate.ToString("dd.MM.yyyy")&lt;/td&gt;
+                &lt;td&gt;@(item.EndDate.HasValue ? item.EndDate.Value.ToString("dd.MM.yyyy") : "-")&lt;/td&gt;
+                &lt;td&gt;
+                    @{
+                        var badgeClass = item.Status == "Aktivan" ? "bg-success"
+                            : item.Status == "Završen" ? "bg-secondary"
+                            : item.Status == "Otkazan" ? "bg-danger"
+                            : "bg-warning text-dark";
+                    }
+                    &lt;span class="badge @badgeClass"&gt;@item.Status&lt;/span&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                    @Html.ActionLink("Detalji", "Details", new { id = item.ProjectID }, new { @class = "btn btn-sm btn-info" })
+                    @Html.ActionLink("Uredi", "Edit", new { id = item.ProjectID }, new { @class = "btn btn-sm btn-warning" })
+                    @Html.ActionLink("Obriši", "Delete", new { id = item.ProjectID }, new { @class = "btn btn-sm btn-danger" })
+                &lt;/td&gt;
+            &lt;/tr&gt;
+        }
+    &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+        <div class="concept-box">
+            <strong>Uvjetno renderiranje badge-ova:</strong><br />
+            Unutar <code>@{ ... }</code> bloka pišemo C# kod koji se izvršava na serveru:<br />
+            <pre><code>@{
+    var badgeClass = item.Status == "Aktivan" ? "bg-success"
+        : item.Status == "Završen" ? "bg-secondary"
+        : item.Status == "Otkazan" ? "bg-danger"
+        : "bg-warning text-dark";
+}</code></pre>
+            Ovo koristi ulančane ternarne operatore za odabir Bootstrap badge klase na osnovu statusa projekta.<br />
+            Rezultat se koristi u:
+            <code>&lt;span class="badge @badgeClass"&gt;@item.Status&lt;/span&gt;</code><br /><br />
+            <strong>Nullable datum:</strong><br />
+            <code>@(item.EndDate.HasValue ? item.EndDate.Value.ToString("dd.MM.yyyy") : "-")</code><br />
+            EndDate je <code>DateTime?</code> (nullable) jer projekat možda još nema datum završetka.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 3: Details View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Project/Details.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Project
+@{
+    ViewBag.Title = "Detalji projekta";
+}
+
+&lt;h2&gt;Detalji projekta&lt;/h2&gt;
+
+&lt;div class="card" style="max-width: 650px;"&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row"&gt;
+            &lt;dt class="col-sm-4"&gt;Naziv projekta&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.ProjectName&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Odjel&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(Model.Department != null ? Model.Department.DepartmentName : "-")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Budžet&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.Budget.ToString("N2")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Datum početka&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.StartDate.ToString("dd.MM.yyyy")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Datum završetka&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(Model.EndDate.HasValue ? Model.EndDate.Value.ToString("dd.MM.yyyy") : "U toku")&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Status&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@Model.Status&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Opis&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(string.IsNullOrEmpty(Model.Description) ? "-" : Model.Description)&lt;/dd&gt;
+
+            &lt;dt class="col-sm-4"&gt;Kreirano&lt;/dt&gt;
+            &lt;dd class="col-sm-8"&gt;@(Model.CreatedDate.HasValue ? Model.CreatedDate.Value.ToString("dd.MM.yyyy HH:mm") : "-")&lt;/dd&gt;
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div style="margin-top: 15px;"&gt;
+    @Html.ActionLink("Uredi", "Edit", new { id = Model.ProjectID }, new { @class = "btn btn-warning" })
+    @Html.ActionLink("Obriši", "Delete", new { id = Model.ProjectID }, new { @class = "btn btn-danger" })
+    @Html.ActionLink("Nazad na listu", "Index", null, new { @class = "btn btn-secondary" })
+&lt;/div&gt;</code></pre>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 4: Create View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Project/Create.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Project
+@{
+    ViewBag.Title = "Kreiraj projekat";
+}
+
+&lt;h2&gt;Kreiraj novi projekat&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="max-width: 600px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.ProjectName, "Naziv projekta")
+            @Html.EditorFor(m =&gt; m.ProjectName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.ProjectName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.DepartmentID, "Odjel")
+            @Html.DropDownList("DepartmentID", null, "-- odaberi odjel --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.DepartmentID, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Budget, "Budžet")
+            @Html.EditorFor(m =&gt; m.Budget, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Budget, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.StartDate, "Datum početka")
+            @Html.EditorFor(m =&gt; m.StartDate, new { htmlAttributes = new { @class = "form-control", type = "date" } })
+            @Html.ValidationMessageFor(m =&gt; m.StartDate, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.EndDate, "Datum završetka (opciono)")
+            @Html.EditorFor(m =&gt; m.EndDate, new { htmlAttributes = new { @class = "form-control", type = "date" } })
+            @Html.ValidationMessageFor(m =&gt; m.EndDate, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            &lt;label&gt;Status&lt;/label&gt;
+            @Html.DropDownList("Status", (SelectList)ViewBag.StatusList, "-- odaberi status --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.Status, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Description, "Opis")
+            @Html.TextAreaFor(m =&gt; m.Description, new { @class = "form-control", rows = 3 })
+        &lt;/div&gt;
+        &lt;div class="mt-3"&gt;
+            &lt;input type="submit" value="Sačuvaj" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }</code></pre>
+
+        <div class="concept-box">
+            <strong>Novi HTML helperi u ovom View-u:</strong><br /><br />
+            <strong>1. DropDownList sa eksplicitnim cast-om:</strong><br />
+            <code>@Html.DropDownList("Status", (SelectList)ViewBag.StatusList, "-- odaberi status --", ...)</code><br />
+            Ovdje eksplicitno kastujemo <code>ViewBag.StatusList</code> u <code>SelectList</code> jer se ime
+            DropDownList-a (<code>"Status"</code>) razlikuje od imena ViewBag svojstva
+            (<code>StatusList</code>).<br /><br />
+            <strong>2. TextAreaFor:</strong><br />
+            <code>@Html.TextAreaFor(m =&gt; m.Description, new { @class = "form-control", rows = 3 })</code><br />
+            Generira <code>&lt;textarea&gt;</code> tag umjesto <code>&lt;input&gt;</code>. Parametar
+            <code>rows = 3</code> postavlja visinu na 3 reda.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 5: Edit View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Project/Edit.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Project
+@{
+    ViewBag.Title = "Uredi projekat";
+}
+
+&lt;h2&gt;Uredi projekat&lt;/h2&gt;
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="max-width: 600px;"&gt;
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        @Html.HiddenFor(m =&gt; m.ProjectID)
+
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.ProjectName, "Naziv projekta")
+            @Html.EditorFor(m =&gt; m.ProjectName, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.ProjectName, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.DepartmentID, "Odjel")
+            @Html.DropDownList("DepartmentID", null, "-- odaberi odjel --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.DepartmentID, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Budget, "Budžet")
+            @Html.EditorFor(m =&gt; m.Budget, new { htmlAttributes = new { @class = "form-control" } })
+            @Html.ValidationMessageFor(m =&gt; m.Budget, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.StartDate, "Datum početka")
+            @Html.EditorFor(m =&gt; m.StartDate, new { htmlAttributes = new { @class = "form-control", type = "date" } })
+            @Html.ValidationMessageFor(m =&gt; m.StartDate, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.EndDate, "Datum završetka (opciono)")
+            @Html.EditorFor(m =&gt; m.EndDate, new { htmlAttributes = new { @class = "form-control", type = "date" } })
+            @Html.ValidationMessageFor(m =&gt; m.EndDate, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            &lt;label&gt;Status&lt;/label&gt;
+            @Html.DropDownList("Status", (SelectList)ViewBag.StatusList, "-- odaberi status --", new { @class = "form-control" })
+            @Html.ValidationMessageFor(m =&gt; m.Status, "", new { @class = "text-danger" })
+        &lt;/div&gt;
+        &lt;div class="form-group mb-3"&gt;
+            @Html.LabelFor(m =&gt; m.Description, "Opis")
+            @Html.TextAreaFor(m =&gt; m.Description, new { @class = "form-control", rows = 3 })
+        &lt;/div&gt;
+        &lt;div class="mt-3"&gt;
+            &lt;input type="submit" value="Sačuvaj izmjene" class="btn btn-primary" /&gt;
+            @Html.ActionLink("Odustani", "Details", new { id = Model.ProjectID }, new { @class = "btn btn-secondary" })
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }</code></pre>
+
+        <div class="concept-box">
+            <strong>Uočite:</strong> "Odustani" link u Edit View-u vodi na <code>Details</code> akciju (ne na
+            <code>Index</code>). Ovo je korisnički prijateljskije jer korisnik se vraća tamo odakle je došao.
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Korak 6: Delete View</h2>
+
+        <div class="step-box">
+            <strong>Lokacija datoteke:</strong> <code>Views/Project/Delete.cshtml</code>
+        </div>
+
+        <pre><code>@model BHAS.DbFirst.Project
+@{
+    ViewBag.Title = "Obriši projekat";
+}
+
+&lt;h2&gt;Potvrda brisanja&lt;/h2&gt;
+&lt;div class="alert alert-warning"&gt;&lt;strong&gt;Upozorenje!&lt;/strong&gt; Ova akcija je nepovratna.&lt;/div&gt;
+
+&lt;div class="card" style="max-width: 500px;"&gt;
+    &lt;div class="card-body"&gt;
+        &lt;dl class="row"&gt;
+            &lt;dt class="col-sm-4"&gt;Naziv&lt;/dt&gt;&lt;dd class="col-sm-8"&gt;@Model.ProjectName&lt;/dd&gt;
+            &lt;dt class="col-sm-4"&gt;Odjel&lt;/dt&gt;&lt;dd class="col-sm-8"&gt;@(Model.Department?.DepartmentName ?? "-")&lt;/dd&gt;
+            &lt;dt class="col-sm-4"&gt;Status&lt;/dt&gt;&lt;dd class="col-sm-8"&gt;@Model.Status&lt;/dd&gt;
+        &lt;/dl&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+@using (Html.BeginForm("Delete", "Project", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+    &lt;div style="margin-top: 15px;"&gt;
+        &lt;input type="submit" value="Da, obriši" class="btn btn-danger" /&gt;
+        @Html.ActionLink("Odustani", "Index", null, new { @class = "btn btn-secondary" })
+    &lt;/div&gt;
+}</code></pre>
+
+        <div class="concept-box">
+            <strong>Null-conditional operator:</strong><br />
+            <code>@(Model.Department?.DepartmentName ?? "-")</code><br /><br />
+            <code>?.</code> (null-conditional) &mdash; Ako je <code>Department</code> null, ne baca grešku nego vraća
+            null.<br />
+            <code>??</code> (null-coalescing) &mdash; Ako je rezultat null, koristi "-" kao default
+            vrijednost.<br /><br />
+            Ovo je kraći zapis od: <code>Model.Department != null ? Model.Department.DepartmentName : "-"</code>
+        </div>
+
+        <hr />
+
+        <!-- ============================================================ -->
+        <h2>Šta ste naučili u ovom poglavlju</h2>
+        <ul>
+            <li><strong>Statički dropdown</strong> &mdash; <code>new SelectList(string[])</code> za fiksne vrijednosti
+            </li>
+            <li><strong>Badge rendering</strong> &mdash; Ulančani ternarni operatori za dinamičke CSS klase</li>
+            <li><strong>TextAreaFor</strong> &mdash; Za višelinijski unos teksta</li>
+            <li><strong>Eksplicitni cast ViewBag-a</strong> &mdash; <code>(SelectList)ViewBag.StatusList</code> kada se
+                ime razlikuje</li>
+            <li><strong>Null-conditional operator</strong> &mdash; <code>?.</code> i <code>??</code> za elegantan rad s
+                null vrijednostima</li>
+            <li><strong>Nullable DateTime</strong> &mdash; <code>HasValue</code> provjera za opcione datume</li>
+        </ul>
+
+        <div class="d-flex justify-content-between mt-4 mb-5">
+            <a href="03-employee.html" class="btn btn-outline-secondary btn-lg">&laquo; Prethodno: Employee</a>
+            <a href="05-region.html" class="btn btn-primary btn-lg">Sljedeće: RegionController &raquo;</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

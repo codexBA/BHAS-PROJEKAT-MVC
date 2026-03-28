@@ -16,10 +16,11 @@
 
             <dt class="col-sm-4">Budžet</dt>
             <dd class="col-sm-8">@Model.Budget</dd>
-
+            @if(Model.Employee != null)
+            {
             <dt class="col-sm-4">Menadžer</dt>
             <dd class="col-sm-8">@Model.Employee.FirstName @Model.Employee.LastName</dd>
-
+            }
             <dt class="col-sm-4">Datum kreiranja</dt>
             <dd class="col-sm-8">
                 @(Model.CreatedDate.HasValue
@@ -27,7 +28,7 @@
                         : "----")
             </dd>
 
-            <dt class="col-sm-4">Datum kreiranja</dt>
+            <dt class="col-sm-4">Datum izmjene</dt>
             <dd class="col-sm-8">
                 @(Model.ModifiedDate.HasValue
                         ? Model.ModifiedDate.Value.ToString("dd.MM.yyyy")
@@ -51,9 +52,12 @@
                         null, 
                         new { @class = "btn btn-sm btn-secondary" })
 
-    @Html.ActionLink("Novi zaposleni", 
-                        "Create", 
-                        "Employee", 
-                        null, @* argumenti *@
-                        new {@class="btn btn-sm btn-danger"})
+    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+    {
+        @Html.ActionLink("Novi zaposleni",
+                            "Create",
+                            "Employee",
+                            null,
+                            new {@class="btn btn-sm btn-danger"})
+    }
 </div>

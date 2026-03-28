@@ -1,12 +1,15 @@
+using BHAS.Controllers;
 using BHAS.DbFirst;
 using System;
 using System.Data.Entity;
 using System.Linq;
+using System.Net;
 using System.Web.Mvc;
 
 namespace AS.MVCDemo.Controllers
 {
-    public class ReportController : Controller
+    [Authorize]
+    public class ReportController : BaseController
     {
         private static readonly string[] StatusValues = { "Draft", "U obradi", "Završen", "Arhiviran" };
         private static readonly string[] ReportTypeValues = { "Statistički", "Finansijski", "Analitički", "Operativni" };
@@ -44,6 +47,7 @@ namespace AS.MVCDemo.Controllers
         }
 
         // GET: Report/Create
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public ActionResult Create()
         {
             using (var db = new StateStatisticsDBEntities())
@@ -58,6 +62,7 @@ namespace AS.MVCDemo.Controllers
 
         // POST: Report/Create
         [HttpPost]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult Create([Bind(Include = "ReportName,DepartmentID,CreatedBy,Status,ReportType,Description")] Report model)
         {
@@ -83,6 +88,7 @@ namespace AS.MVCDemo.Controllers
         }
 
         // GET: Report/Edit/5
+        [Authorize(Roles = "Admin,Editor,SuperAdmin")]
         public ActionResult Edit(int id)
         {
             using (var db = new StateStatisticsDBEntities())
@@ -90,6 +96,9 @@ namespace AS.MVCDemo.Controllers
                 var report = db.Reports.Find(id);
                 if (report == null)
                     return HttpNotFound();
+
+                if (!CanEditDepartment(report.DepartmentID))
+                    return DepartmentAccessDenied();
 
                 PopulateDepartmentsSelectList(db, report.DepartmentID);
                 PopulateEmployeesSelectList(db, report.CreatedBy);
@@ -101,6 +110,7 @@ namespace AS.MVCDemo.Controllers
 
         // POST: Report/Edit/5
         [HttpPost]
+        [Authorize(Roles = "Admin,Editor,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public ActionResult Edit([Bind(Include = "ReportID,ReportName,DepartmentID,CreatedBy,Status,ReportType,Description")] Report model)
         {
@@ -108,6 +118,10 @@ namespace AS.MVCDemo.Controllers
             {
                 using (var db = new StateStatisticsDBEntities())
                 {
+                    var existing = db.Reports.Find(model.ReportID);
+                    if (existing != null && !CanEditDepartment(existing.DepartmentID))
+                        return DepartmentAccessDenied();
+
                     db.Entry(model).State = EntityState.Modified;
                     db.SaveChanges();
                     return RedirectToAction("Details", new { id = model.ReportID });
